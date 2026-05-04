@@ -244,6 +244,7 @@
     .badge-avail { background: rgba(34,197,94,0.15); color: var(--success); }
     .badge-taken { background: rgba(239,68,68,0.15); color: var(--danger); }
     .badge-invalid { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .badge-rate { background: rgba(245,158,11,0.15); color: var(--warning); }
     .badge-error { background: rgba(158,158,158,0.15); color: var(--hint); }
 
     /* ── Summary Cards ── */
@@ -719,30 +720,72 @@ function validateUsername(u) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// CHECK AVAILABILITY (via t.me scraping through CORS proxy)
+// CHECK AVAILABILITY (via t.me scraping — matches bot logic)
 // ══════════════════════════════════════════════════════════════
+// Detection mirrors checker/telegram_client.py _parse_page():
+//   TAKEN if any of: profile photo, display name, subscriber count, real bio
+//   AVAILABLE if only generic "you can contact @username right away" page
+//   INVALID if username doesn't match Telegram rules (5-32 chars, a-z0-9_, starts with letter, no __, no trailing _)
+//   RATE_LIMITED if 429 response
+//   ERROR on network/timeout failure
+// Retries up to 3 times with exponential backoff on failure/rate-limit.
+
 async function checkAvailability(username, signal) {
-  try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/' + username)}`;
-    const resp = await fetch(proxyUrl, { signal: signal || AbortSignal.timeout(12000) });
-    if (resp.status === 404) return 'available';
-    if (!resp.ok) return 'error';
-    const html = await resp.text();
+  const MAX_RETRIES = 3;
+  const BASE_BACKOFF = 2000; // ms
 
-    const hasPhoto = /tgme_page_photo_image/i.test(html);
-    const nameMatch = html.match(/tgme_page_title[^>]*>(.*?)<\/div>/is);
-    const hasName = nameMatch && nameMatch[1].replace(/<[^>]+>/g, '').trim();
-    const subsMatch = html.match(/tgme_page_extra[^>]*>(.*?)<\/div>/is);
-    const hasSubs = subsMatch && (/subscribers/i.test(subsMatch[1]) || /members/i.test(subsMatch[1]));
-    const descMatch = html.match(/tgme_page_description[^>]*dir="auto">(.*?)<\/div>/is);
-    const hasBio = descMatch && descMatch[1].replace(/<[^>]+>/g, '').trim() &&
-      !descMatch[1].toLowerCase().includes(`you can contact @${username} right away`);
+  // Pre-validate (matches is_valid_username in telegram_client.py)
+  if (!username || username.length < 5 || username.length > 32) return 'invalid';
+  if (!/^[a-z]/.test(username)) return 'invalid';
+  if (/__/.test(username)) return 'invalid';
+  if (username.endsWith('_')) return 'invalid';
+  if (!/^[a-z0-9_]+$/.test(username)) return 'invalid';
 
-    if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
-    return 'available';
-  } catch (e) {
-    return e.name === 'TimeoutError' || e.name === 'AbortError' ? 'error' : 'error';
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/' + username)}`;
+      const resp = await fetch(proxyUrl, { signal: signal || AbortSignal.timeout(15000) });
+
+      // Rate limited — retry with backoff
+      if (resp.status === 429) {
+        if (attempt < MAX_RETRIES - 1) {
+          const backoff = BASE_BACKOFF * Math.pow(2, attempt) + Math.random() * 500;
+          await new Promise(r => setTimeout(r, backoff));
+          continue;
+        }
+        return 'rate_limited';
+      }
+
+      if (!resp.ok) return 'error';
+      const html = await resp.text();
+
+      // Parse page — same 4 indicators as telegram_client.py _parse_page()
+      const hasPhoto = /tgme_page_photo_image/i.test(html);
+      const nameMatch = html.match(/tgme_page_title[^>]*>(.*?)<\/div>/is);
+      const hasName = nameMatch && nameMatch[1].replace(/<[^>]+>/g, '').trim();
+      const subsMatch = html.match(/tgme_page_extra[^>]*>(.*?)<\/div>/is);
+      const hasSubs = subsMatch && (/subscribers/i.test(subsMatch[1]) || /members/i.test(subsMatch[1]));
+      const descMatch = html.match(/tgme_page_description[^>]*dir="auto">(.*?)<\/div>/is);
+      const hasBio = descMatch && descMatch[1].replace(/<[^>]+>/g, '').trim() &&
+        !descMatch[1].toLowerCase().includes(`you can contact @${username} right away`);
+
+      // Any real profile data → TAKEN
+      if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
+      // No profile data → AVAILABLE (generic contact page)
+      return 'available';
+
+    } catch (e) {
+      if (e.name === 'AbortError') return 'error';
+      // Retry on timeout/network errors
+      if (attempt < MAX_RETRIES - 1) {
+        const backoff = BASE_BACKOFF * Math.pow(2, attempt) + Math.random() * 500;
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      return 'error';
+    }
   }
+  return 'error';
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -753,6 +796,7 @@ function recordStat(status) {
   if (status === 'available') stats.hits++;
   else if (status === 'taken') stats.taken++;
   else if (status === 'invalid') stats.invalid++;
+  else if (status === 'rate_limited') { if (!stats.rate_limited) stats.rate_limited = 0; stats.rate_limited++; }
   else stats.errors++;
   saveJSON('stats', stats);
 }
@@ -972,8 +1016,8 @@ async function doBatchCheck() {
 
   html += '<div class="results-list">';
   for (const r of sorted) {
-    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[r.status] || 'badge-error';
-    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[r.status] || 'Error';
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', rate_limited: 'badge-rate', error: 'badge-error' }[r.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', rate_limited: 'Rate Limited', error: 'Error' }[r.status] || 'Error';
     html += `<div class="result-item">
       <span class="ri-name">@${r.name}</span>
       <span class="ri-actions">
@@ -1245,8 +1289,8 @@ function renderBatchResults(container, results, done, hits, taken, errs, elapsed
 
   html += '<div class="results-list">';
   for (const r of sorted) {
-    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[r.status] || 'badge-error';
-    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[r.status] || 'Error';
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', rate_limited: 'badge-rate', error: 'badge-error' }[r.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', rate_limited: 'Rate Limited', error: 'Error' }[r.status] || 'Error';
     html += `<div class="result-item">
       <span class="ri-name">@${r.name}</span>
       <span class="ri-actions">
@@ -1271,8 +1315,8 @@ function renderHistoryPage() {
 
   let html = '<div class="history-list">';
   for (const h of history.slice(0, 50)) {
-    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[h.status] || 'badge-error';
-    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[h.status] || 'Error';
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', rate_limited: 'badge-rate', error: 'badge-error' }[h.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', rate_limited: 'Rate Limited', error: 'Error' }[h.status] || 'Error';
     const ago = getTimeAgo(h.time);
     html += `<div class="history-item">
       <span class="hi-name">@${h.username}</span>

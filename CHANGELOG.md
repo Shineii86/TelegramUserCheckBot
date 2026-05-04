@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] — 2026-05-04
+
+### 🔍 Inline Query Mode, Web App & Compatibility Fixes
+
+#### ✨ Added
+- **Inline Query Mode** — Check usernames directly from any chat using `@botname username`
+  - Available usernames show green checkmark with claim link
+  - Taken usernames show red X with suggestion to try `/generate`
+  - Invalid usernames show validation rules
+  - Error states handled gracefully with retry guidance
+- **Telegram Web App (Mini App) Integration** — Launch the bot as a Mini App inside Telegram
+  - Seamless in-app experience without leaving Telegram
+  - Full bot functionality accessible via Web App interface
+
+#### 🐛 Fixed
+- **`InlineQueryResultArticle` crash** — Replaced deprecated `thumb_url` with `thumbnail_url` for `python-telegram-bot` v20+ compatibility
+- **Stale v2.1 references** — Cleaned up outdated version refs in README banner and FAQ
+- **Export button callback** — Fixed `send_finish` export button callback_data mapping
+
+#### 🔧 Changed
+- **Notebook cleanup** — Removed unused `fix_cell.py` from notebooks directory
+
+---
+
 ## [2.1.1] — 2026-05-04
 
 ### 🐛 Colab/Jupyter Event Loop Fix
@@ -348,30 +372,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limit detection (counted separately, not silently skipped)
 - Graceful Ctrl+C handling
 - Thread-safe counters with locks
-
----
-
-## [3.1.0] — 2026-05-04
-
-### 🔍 Inline Query Mode, Web App & Compatibility Fixes
-
-#### ✨ Added
-- **Inline Query Mode** — Check usernames directly from any chat using `@botname username`
-  - Available usernames show green checkmark with claim link
-  - Taken usernames show red X with suggestion to try `/generate`
-  - Invalid usernames show validation rules
-  - Error states handled gracefully with retry guidance
-- **Telegram Web App (Mini App) Integration** — Launch the bot as a Mini App inside Telegram
-  - Seamless in-app experience without leaving Telegram
-  - Full bot functionality accessible via Web App interface
-
-#### 🐛 Fixed
-- **`InlineQueryResultArticle` crash** — Replaced deprecated `thumb_url` with `thumbnail_url` for `python-telegram-bot` v20+ compatibility
-- **Stale v2.1 references** — Cleaned up outdated version refs in README banner and FAQ
-- **Export button callback** — Fixed `send_finish` export button callback_data mapping
-
-#### 🔧 Changed
-- **Notebook cleanup** — Removed unused `fix_cell.py` from notebooks directory
 
 ---
 

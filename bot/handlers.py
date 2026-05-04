@@ -8,12 +8,14 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
+    InlineQueryHandler,
+    ChosenInlineResultHandler,
     ContextTypes,
     filters,
 )
@@ -966,6 +968,114 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await safe_edit(msg, result_text, parse_mode=ParseMode.HTML, reply_markup=kb)
 
 
+
+# ============================================================================
+# INLINE QUERY HANDLER
+# ============================================================================
+
+async def handle_inline_query(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.inline_query.query.strip().lower().lstrip("@")
+    if not query:
+        return
+    if len(query) < 2 or len(query) > 32:
+        return
+
+    results = []
+
+    # If it looks like a valid username, offer to check it
+    if all(c in "abcdefghijklmnopqrstuvwxyz0123456789_" for c in query) and query[0].isalpha():
+        session = get_session(update.effective_user.id)
+        status, _ = await asyncio.to_thread(client.check, query, 0)
+        session.record(status, query)
+
+        if status == AVAILABLE:
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"av_{query}",
+                    title=f"✅ @{query} is AVAILABLE!",
+                    description=f"Tap to send • t.me/{query}",
+                    input_message_content=InputTextMessageContent(
+                        f"{E['party']} <b>AVAILABLE!</b> {E['sparkle']}\n{THICK_DIVIDER}\n"
+                        f"  {E['user']} <code>@{query}</code>\n"
+                        f"  {E['link']} <a href=\"https://t.me/{query}\">t.me/{query}</a>\n\n"
+                        f"  {E['bulb']} <i>Claim it now!</i>",
+                        parse_mode=ParseMode.HTML,
+                        disable_web_page_preview=True,
+                    ),
+                    thumb_url="https://img.icons8.com/color/48/checkmark.png",
+                )
+            )
+        elif status == TAKEN:
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"tk_{query}",
+                    title=f"❌ @{query} is taken",
+                    description="Already registered on Telegram",
+                    input_message_content=InputTextMessageContent(
+                        f"{E['taken']} <b>Taken</b>\n{DIVIDER}\n<code>@{query}</code> is already registered.\n\n"
+                        f"{E['bulb']} <i>Try /generate to find available names!</i>",
+                        parse_mode=ParseMode.HTML,
+                    ),
+                    thumb_url="https://img.icons8.com/color/48/cancel.png",
+                )
+            )
+        elif status == INVALID:
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"in_{query}",
+                    title=f"🚫 @{query} is invalid",
+                    description="5–32 chars, a-z/0-9/_, starts with letter",
+                    input_message_content=InputTextMessageContent(
+                        f"{E['invalid']} <code>@{query}</code> is not a valid Telegram username.\n"
+                        f"Rules: 5–32 chars, a-z/0-9/_, starts with letter, no double __",
+                        parse_mode=ParseMode.HTML,
+                    ),
+                )
+            )
+        else:
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"er_{query}",
+                    title=f"⚠️ Error checking @{query}",
+                    description="Rate limited or network error — try again",
+                    input_message_content=InputTextMessageContent(
+                        f"{E['error']} Could not check <code>@{query}</code>. Try again later.",
+                        parse_mode=ParseMode.HTML,
+                    ),
+                )
+            )
+    else:
+        # Not a valid username format — suggest using /generate
+        results.append(
+            InlineQueryResultArticle(
+                id=f"bad_{query}",
+                title=f"💡 Type a valid username to check",
+                description="5–32 chars: a-z, 0-9, _ — must start with a letter",
+                input_message_content=InputTextMessageContent(
+                    f"{E['bulb']} <b>Quick Check</b>\n{DIVIDER}\n"
+                    f"Type a valid Telegram username to check availability.\n\n"
+                    f"<b>Rules:</b> 5–32 chars, a-z/0-9/_, starts with letter, no __\n\n"
+                    f"<b>Or try:</b> /generate — find random available names!",
+                    parse_mode=ParseMode.HTML,
+                ),
+            )
+        )
+
+    await update.inline_query.answer(results, cache_time=0, is_personal=True)
+
+
+async def handle_chosen_inline(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Track chosen inline results for analytics."""
+    result_id = update.chosen_inline_result.result_id
+    user_id = update.chosen_inline_result.from_user.id
+    session = get_session(user_id)
+    # result_id format: "av_username" or "tk_username"
+    if "_" in result_id:
+        parts = result_id.split("_", 1)
+        if len(parts) == 2 and parts[0] == "av":
+            pass  # Could add extra tracking here
+
+
 # ============================================================================
 # BOT RUNNER
 # ============================================================================
@@ -997,8 +1107,10 @@ def run_bot(token: str):
     app.add_handler(CommandHandler("stop", cmd_stop))
     app.add_handler(CommandHandler("cancel", cmd_stop))
 
-    # Callbacks & messages
+    # Callbacks, inline queries & messages
     app.add_handler(CallbackQueryHandler(callback_handler))
+    app.add_handler(InlineQueryHandler(handle_inline_query))
+    app.add_handler(ChosenInlineResultHandler(handle_chosen_inline))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print(f"🤖 {BOT_USERNAME} v{VERSION} is running...")

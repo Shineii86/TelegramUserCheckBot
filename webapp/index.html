@@ -13,652 +13,1376 @@
       --link: var(--tg-theme-link-color, #2481cc);
       --btn: var(--tg-theme-button-color, #2481cc);
       --btn-text: var(--tg-theme-button-text-color, #ffffff);
-      --secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+      --sec-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
       --accent: #2481cc;
-      --success: #4caf50;
-      --danger: #f44336;
-      --warning: #ff9800;
-      --radius: 12px;
-      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 2px 16px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 16px;
-      padding-bottom: 100px;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
     }
 
-    .header {
-      text-align: center;
-      padding: 20px 0 10px;
+    /* ── Page System ── */
+    .page { display: none; padding: 16px; padding-bottom: 120px; animation: fadeIn 0.2s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 0 16px; border-bottom: 1px solid var(--sec-bg); margin-bottom: 16px;
+    }
+    .page-header .back-btn {
+      width: 36px; height: 36px; border: none; background: var(--sec-bg);
+      border-radius: 10px; font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; transition: var(--transition);
+    }
+    .page-header .back-btn:active { transform: scale(0.9); background: var(--hint); color: var(--bg); }
+    .page-header h2 { font-size: 18px; font-weight: 700; flex: 1; }
+    .page-header .header-icon { font-size: 22px; }
+
+    /* ── Home Page ── */
+    .hero { text-align: center; padding: 24px 0 16px; }
+    .hero .logo { font-size: 56px; margin-bottom: 8px; animation: bounce 2s ease-in-out infinite; }
+    .hero h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .hero .subtitle { font-size: 13px; color: var(--hint); margin-top: 4px; }
+    .hero .version-badge {
+      display: inline-block; margin-top: 8px; padding: 3px 10px;
+      background: linear-gradient(135deg, var(--btn), #7c3aed);
+      color: #fff; font-size: 11px; font-weight: 700; border-radius: 20px;
     }
 
-    .header .icon {
-      font-size: 48px;
-      margin-bottom: 8px;
+    /* ── Quick Actions Grid ── */
+    .actions-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0;
+    }
+    .action-card {
+      padding: 16px; border-radius: var(--radius); background: var(--sec-bg);
+      cursor: pointer; transition: var(--transition); border: 2px solid transparent;
+      position: relative; overflow: hidden;
+    }
+    .action-card:active { transform: scale(0.96); border-color: var(--btn); }
+    .action-card .icon { font-size: 28px; margin-bottom: 6px; }
+    .action-card .label { font-size: 14px; font-weight: 700; }
+    .action-card .desc { font-size: 11px; color: var(--hint); margin-top: 2px; }
+    .action-card.featured {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(36,129,204,0.1), rgba(124,58,237,0.1));
+      border: 1px solid rgba(36,129,204,0.2);
     }
 
-    .header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin: 16px 0; padding: 14px; border-radius: var(--radius); background: var(--sec-bg);
     }
+    .stat-item { text-align: center; }
+    .stat-item .num { font-size: 20px; font-weight: 800; color: var(--btn); }
+    .stat-item .lbl { font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .header p {
-      font-size: 13px;
-      color: var(--hint);
-      margin-top: 4px;
+    /* ── Search Box ── */
+    .search-wrap { margin: 16px 0; position: relative; }
+    .search-wrap input {
+      width: 100%; padding: 14px 16px 14px 42px; font-size: 16px;
+      border: 2px solid var(--sec-bg); border-radius: var(--radius);
+      background: var(--sec-bg); color: var(--text); outline: none;
+      transition: var(--transition); font-family: 'SF Mono', 'Fira Code', monospace;
     }
-
-    .search-box {
-      margin: 20px 0;
-      position: relative;
+    .search-wrap input:focus { border-color: var(--btn); box-shadow: 0 0 0 3px rgba(36,129,204,0.12); }
+    .search-wrap .prefix {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--hint); pointer-events: none;
     }
-
-    .search-box input {
-      width: 100%;
-      padding: 14px 16px 14px 44px;
-      font-size: 16px;
-      border: 2px solid var(--secondary-bg);
-      border-radius: var(--radius);
-      background: var(--secondary-bg);
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    .search-wrap .clear {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      width: 26px; height: 26px; border: none; background: var(--hint);
+      color: var(--bg); border-radius: 50%; font-size: 14px; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
     }
+    .search-wrap .clear.show { display: flex; }
 
-    .search-box input:focus {
-      border-color: var(--btn);
-      box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.15);
+    /* ── Textarea (batch) ── */
+    .batch-input {
+      width: 100%; min-height: 120px; padding: 14px; font-size: 14px;
+      border: 2px solid var(--sec-bg); border-radius: var(--radius);
+      background: var(--sec-bg); color: var(--text); outline: none;
+      resize: vertical; font-family: 'SF Mono', 'Fira Code', monospace;
+      transition: var(--transition); line-height: 1.6;
     }
+    .batch-input:focus { border-color: var(--btn); box-shadow: 0 0 0 3px rgba(36,129,204,0.12); }
+    .batch-input::placeholder { color: var(--hint); font-family: -apple-system, sans-serif; }
+    .batch-counter { font-size: 12px; color: var(--hint); text-align: right; margin-top: 4px; }
 
-    .search-box input::placeholder {
-      color: var(--hint);
+    /* ── Pattern Input ── */
+    .pattern-wrap { margin: 16px 0; }
+    .pattern-wrap input {
+      width: 100%; padding: 14px 16px; font-size: 16px;
+      border: 2px solid var(--sec-bg); border-radius: var(--radius);
+      background: var(--sec-bg); color: var(--text); outline: none;
+      font-family: 'SF Mono', 'Fira Code', monospace; transition: var(--transition);
     }
-
-    .search-box .prefix {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 16px;
-      color: var(--hint);
-      pointer-events: none;
+    .pattern-wrap input:focus { border-color: var(--btn); }
+    .pattern-symbols {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
     }
+    .pattern-symbols .sym {
+      padding: 4px 10px; border-radius: 8px; background: var(--sec-bg);
+      font-size: 12px; font-family: 'SF Mono', monospace; cursor: pointer;
+      transition: var(--transition); border: 1px solid transparent;
+    }
+    .pattern-symbols .sym:active { border-color: var(--btn); background: rgba(36,129,204,0.1); }
+    .pattern-symbols .sym code { font-weight: 700; color: var(--btn); }
+    .pattern-templates {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;
+    }
+    .pattern-templates .tpl {
+      padding: 6px 12px; border-radius: 8px; background: var(--sec-bg);
+      font-size: 12px; font-family: 'SF Mono', monospace; cursor: pointer;
+      transition: var(--transition); border: 1px solid transparent;
+    }
+    .pattern-templates .tpl:active { border-color: var(--btn); }
 
-    .search-box .clear-btn {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 24px;
-      height: 24px;
-      border: none;
-      background: var(--hint);
-      color: var(--bg);
-      border-radius: 50%;
-      font-size: 14px;
-      cursor: pointer;
+    /* ── Buttons ── */
+    .btn-primary {
+      width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
+      border: none; border-radius: var(--radius); background: var(--btn);
+      color: var(--btn-text); cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:active { transform: scale(0.98); opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary .spinner {
+      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite;
       display: none;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
     }
-
-    .search-box .clear-btn.visible { display: flex; }
-
-    .check-btn {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      border: none;
-      border-radius: var(--radius);
-      background: var(--btn);
-      color: var(--btn-text);
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .check-btn:active { transform: scale(0.98); }
-    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .check-btn .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      display: none;
-    }
-
-    .check-btn.loading .spinner { display: block; }
-    .check-btn.loading .btn-text { display: none; }
-
+    .btn-primary.loading .spinner { display: block; }
+    .btn-primary.loading .btn-text { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .btn-secondary {
+      width: 100%; padding: 12px; font-size: 14px; font-weight: 600;
+      border: 2px solid var(--sec-bg); border-radius: var(--radius);
+      background: transparent; color: var(--text); cursor: pointer;
+      transition: var(--transition); display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+    .btn-secondary:active { border-color: var(--btn); }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-row .btn-secondary, .btn-row .btn-primary { flex: 1; }
+
+    .btn-sm {
+      padding: 8px 14px; font-size: 13px; font-weight: 600; border: none;
+      border-radius: 8px; cursor: pointer; transition: var(--transition);
+    }
+    .btn-sm:active { transform: scale(0.95); }
+
+    /* ── Results ── */
     .result-card {
-      margin-top: 16px;
-      padding: 20px;
-      border-radius: var(--radius);
-      background: var(--secondary-bg);
-      box-shadow: var(--shadow);
-      display: none;
+      margin-top: 16px; padding: 18px; border-radius: var(--radius);
+      background: var(--sec-bg); box-shadow: var(--shadow); display: none;
       animation: slideUp 0.3s ease;
     }
-
-    .result-card.visible { display: block; }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+    .result-card.show { display: block; }
+    .result-card .r-icon { font-size: 36px; text-align: center; margin-bottom: 6px; }
+    .result-card .r-text { text-align: center; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .result-card .r-sub { text-align: center; font-size: 14px; color: var(--hint); margin-bottom: 14px; }
+    .result-card .r-sub code {
+      background: var(--bg); padding: 2px 8px; border-radius: 6px;
+      font-family: 'SF Mono', monospace; font-size: 13px; color: var(--text);
     }
 
-    .result-card .status-icon {
-      font-size: 40px;
-      text-align: center;
-      margin-bottom: 8px;
+    /* ── Batch Results ── */
+    .batch-progress {
+      margin: 16px 0; padding: 14px; border-radius: var(--radius); background: var(--sec-bg);
+      display: none;
     }
-
-    .result-card .status-text {
-      text-align: center;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .batch-progress.show { display: block; animation: slideUp 0.2s ease; }
+    .batch-progress .prog-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .batch-progress .prog-header .label { font-size: 13px; font-weight: 600; }
+    .batch-progress .prog-header .count { font-size: 13px; color: var(--hint); }
+    .prog-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+    .prog-bar .fill {
+      height: 100%; background: linear-gradient(90deg, var(--btn), #7c3aed);
+      border-radius: 3px; transition: width 0.3s ease; width: 0%;
     }
+    .batch-progress .speed { font-size: 12px; color: var(--hint); margin-top: 6px; text-align: right; }
 
-    .result-card .username-display {
-      text-align: center;
-      font-size: 15px;
-      color: var(--hint);
-      margin-bottom: 16px;
-    }
-
-    .result-card .username-display code {
-      background: var(--bg);
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 14px;
-      color: var(--text);
-    }
-
-    .result-card .actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .result-card .actions button {
-      flex: 1;
-      padding: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    .result-card .actions button:active { opacity: 0.7; }
-
-    .btn-open {
-      background: var(--btn);
-      color: var(--btn-text);
-    }
-
-    .btn-send {
-      background: var(--success);
-      color: #fff;
-    }
-
-    .btn-copy {
-      background: var(--secondary-bg);
-      color: var(--text);
-      border: 1px solid var(--hint) !important;
-    }
-
-    .rules-card {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: var(--radius);
-      background: var(--secondary-bg);
-    }
-
-    .rules-card h3 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .rules-card .rule {
-      font-size: 13px;
-      color: var(--hint);
-      padding: 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .rules-card .rule .icon { font-size: 14px; }
-
-    .history-section {
-      margin-top: 20px;
-    }
-
-    .history-section h3 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .history-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: var(--secondary-bg);
-      font-size: 14px;
+    .results-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .result-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-radius: var(--radius-sm); background: var(--sec-bg);
       animation: slideUp 0.2s ease;
     }
-
-    .history-item .name {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-weight: 500;
+    .result-item .ri-name {
+      font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 600;
     }
-
-    .history-item .badge {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 600;
+    .result-item .ri-actions { display: flex; gap: 6px; align-items: center; }
+    .badge {
+      font-size: 11px; padding: 3px 8px; border-radius: 8px; font-weight: 700;
     }
-
-    .badge-available { background: rgba(76,175,80,0.15); color: var(--success); }
-    .badge-taken { background: rgba(244,67,54,0.15); color: var(--danger); }
-    .badge-invalid { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-avail { background: rgba(34,197,94,0.15); color: var(--success); }
+    .badge-taken { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-invalid { background: rgba(245,158,11,0.15); color: var(--warning); }
     .badge-error { background: rgba(158,158,158,0.15); color: var(--hint); }
 
-    .footer {
-      text-align: center;
-      padding: 20px 0;
-      font-size: 12px;
-      color: var(--hint);
+    /* ── Summary Cards ── */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0;
     }
-
-    .footer a {
-      color: var(--link);
-      text-decoration: none;
+    .summary-card {
+      padding: 14px; border-radius: var(--radius-sm); background: var(--sec-bg); text-align: center;
     }
+    .summary-card .s-num { font-size: 24px; font-weight: 800; }
+    .summary-card .s-lbl { font-size: 11px; color: var(--hint); margin-top: 2px; }
+    .summary-card.green .s-num { color: var(--success); }
+    .summary-card.red .s-num { color: var(--danger); }
+    .summary-card.yellow .s-num { color: var(--warning); }
+    .summary-card.blue .s-num { color: var(--btn); }
 
-    .validation-msg {
-      font-size: 13px;
-      color: var(--danger);
-      margin-top: 8px;
-      display: none;
-      align-items: center;
-      gap: 4px;
+    /* ── History ── */
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-radius: var(--radius-sm); background: var(--sec-bg);
+      animation: slideUp 0.15s ease;
     }
+    .history-item .hi-name { font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 600; }
+    .history-item .hi-right { display: flex; align-items: center; gap: 8px; }
+    .history-item .hi-time { font-size: 11px; color: var(--hint); }
 
-    .validation-msg.visible { display: flex; }
-
-    .tips {
-      margin-top: 16px;
-      padding: 14px;
-      border-radius: var(--radius);
-      background: linear-gradient(135deg, rgba(36,129,204,0.08), rgba(76,175,80,0.08));
-      border: 1px solid rgba(36,129,204,0.15);
+    /* ── Settings ── */
+    .setting-group {
+      margin: 12px 0; padding: 14px; border-radius: var(--radius);
+      background: var(--sec-bg);
     }
-
-    .tips h4 {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
+    .setting-group .sg-label { font-size: 12px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .setting-options { display: flex; flex-wrap: wrap; gap: 6px; }
+    .setting-opt {
+      padding: 8px 14px; border-radius: 8px; background: var(--bg);
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--transition);
+      border: 2px solid transparent;
     }
+    .setting-opt.active { border-color: var(--btn); color: var(--btn); background: rgba(36,129,204,0.08); }
+    .setting-opt:active { transform: scale(0.95); }
 
-    .tips p {
-      font-size: 12px;
-      color: var(--hint);
-      line-height: 1.5;
+    /* ── Validation ── */
+    .validation {
+      font-size: 13px; color: var(--danger); margin-top: 6px;
+      display: none; align-items: center; gap: 4px;
     }
+    .validation.show { display: flex; }
+
+    /* ── Tips ── */
+    .tip-card {
+      margin: 16px 0; padding: 14px; border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(36,129,204,0.06), rgba(124,58,237,0.06));
+      border: 1px solid rgba(36,129,204,0.12);
+    }
+    .tip-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .tip-card p { font-size: 12px; color: var(--hint); line-height: 1.5; }
+
+    /* ── Rules Card ── */
+    .rules-card { margin: 16px 0; padding: 14px; border-radius: var(--radius); background: var(--sec-bg); }
+    .rules-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .rule-item { font-size: 13px; color: var(--hint); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+
+    /* ── Footer ── */
+    .footer { text-align: center; padding: 20px 0; font-size: 12px; color: var(--hint); }
+    .footer a { color: var(--link); text-decoration: none; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border-radius: 10px; background: var(--text); color: var(--bg);
+      font-size: 13px; font-weight: 600; z-index: 999; opacity: 0;
+      transition: opacity 0.3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Empty State ── */
+    .empty { text-align: center; padding: 40px 0; }
+    .empty .icon { font-size: 48px; margin-bottom: 8px; }
+    .empty .text { font-size: 14px; color: var(--hint); }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="icon">🔍</div>
+
+<!-- ═══════════════ HOME PAGE ═══════════════ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="logo">🔍</div>
     <h1>Username Checker</h1>
-    <p>Check Telegram username availability</p>
+    <p class="subtitle">Find your perfect Telegram username</p>
+    <span class="version-badge" id="versionBadge">v3.1</span>
   </div>
 
-  <div class="search-box">
-    <span class="prefix">@</span>
-    <input type="text" id="usernameInput" placeholder="Enter username..." autocomplete="off" autocorrect="off" spellcheck="false" maxlength="32">
-    <button class="clear-btn" id="clearBtn" onclick="clearInput()">✕</button>
+  <div class="stats-bar" id="homeStats">
+    <div class="stat-item"><div class="num" id="statChecked">0</div><div class="lbl">Checked</div></div>
+    <div class="stat-item"><div class="num" id="statHits">0</div><div class="lbl">Available</div></div>
+    <div class="stat-item"><div class="num" id="statTaken">0</div><div class="lbl">Taken</div></div>
+    <div class="stat-item"><div class="num" id="statRate">0%</div><div class="lbl">Hit Rate</div></div>
   </div>
 
-  <div class="validation-msg" id="validationMsg">
-    <span>⚠️</span>
-    <span id="validationText"></span>
+  <div class="actions-grid">
+    <div class="action-card" onclick="showPage('single')">
+      <div class="icon">🔎</div>
+      <div class="label">Single Check</div>
+      <div class="desc">Check one username</div>
+    </div>
+    <div class="action-card" onclick="showPage('batch')">
+      <div class="icon">📦</div>
+      <div class="label">Batch Check</div>
+      <div class="desc">Check multiple at once</div>
+    </div>
+    <div class="action-card" onclick="showPage('generate')">
+      <div class="icon">✨</div>
+      <div class="label">Generate</div>
+      <div class="desc">Random usernames</div>
+    </div>
+    <div class="action-card" onclick="showPage('pattern')">
+      <div class="icon">🔮</div>
+      <div class="label">Pattern</div>
+      <div class="desc">Template-based names</div>
+    </div>
+    <div class="action-card" onclick="showPage('history')">
+      <div class="icon">📜</div>
+      <div class="label">History</div>
+      <div class="desc">Recent checks</div>
+    </div>
+    <div class="action-card" onclick="showPage('settings')">
+      <div class="icon">⚙️</div>
+      <div class="label">Settings</div>
+      <div class="desc">Configure checker</div>
+    </div>
   </div>
 
-  <button class="check-btn" id="checkBtn" onclick="checkUsername()">
-    <div class="spinner"></div>
-    <span class="btn-text">🔍 Check Availability</span>
-  </button>
-
-  <div class="result-card" id="resultCard">
-    <div class="status-icon" id="statusIcon"></div>
-    <div class="status-text" id="statusText"></div>
-    <div class="username-display" id="usernameDisplay"></div>
-    <div class="actions" id="resultActions"></div>
-  </div>
-
-  <div class="tips">
-    <h4>💡 Tips</h4>
-    <p>Short names (5-6 chars) are almost all taken. Try 7+ characters with mixed letters and numbers for better results. Use the bot's /generate command to find available names automatically!</p>
+  <div class="tip-card">
+    <h4>💡 Pro Tip</h4>
+    <p>Short names (5-6 chars) are almost all taken. Try 7+ characters with letters and numbers. Use <b>Generate</b> or <b>Pattern</b> mode for best results!</p>
   </div>
 
   <div class="rules-card">
     <h3>📌 Username Rules</h3>
-    <div class="rule"><span class="icon">✅</span> 5–32 characters</div>
-    <div class="rule"><span class="icon">✅</span> a-z, 0-9, underscores only</div>
-    <div class="rule"><span class="icon">✅</span> Must start with a letter</div>
-    <div class="rule"><span class="icon">❌</span> No double underscores (__)</div>
-    <div class="rule"><span class="icon">❌</span> Can't end with underscore</div>
+    <div class="rule-item">✅ 5–32 characters</div>
+    <div class="rule-item">✅ a-z, 0-9, underscores only</div>
+    <div class="rule-item">✅ Must start with a letter</div>
+    <div class="rule-item">❌ No double underscores (__)</div>
+    <div class="rule-item">❌ Can't end with underscore</div>
   </div>
 
-  <div class="history-section" id="historySection" style="display:none">
-    <h3>📜 Recent Checks</h3>
-    <div class="history-list" id="historyList"></div>
+  <div class="footer">Made with ❤️ by <a href="https://github.com/Shineii86">Shineii86</a></div>
+</div>
+
+<!-- ═══════════════ SINGLE CHECK ═══════════════ -->
+<div class="page" id="page-single">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Single Check</h2>
+    <span class="header-icon">🔎</span>
   </div>
 
-  <div class="footer">
-    Made with ❤️ by <a href="https://github.com/Shineii86">Shineii86</a>
+  <div class="search-wrap">
+    <span class="prefix">@</span>
+    <input type="text" id="singleInput" placeholder="Enter username..." autocomplete="off" autocorrect="off" spellcheck="false" maxlength="32">
+    <button class="clear" id="singleClear" onclick="clearSingle()">✕</button>
+  </div>
+  <div class="validation" id="singleValid"><span>⚠️</span><span id="singleValidText"></span></div>
+
+  <button class="btn-primary" id="singleBtn" onclick="doSingleCheck()">
+    <div class="spinner"></div>
+    <span class="btn-text">🔍 Check Availability</span>
+  </button>
+
+  <div class="result-card" id="singleResult">
+    <div class="r-icon" id="srIcon"></div>
+    <div class="r-text" id="srText"></div>
+    <div class="r-sub" id="srSub"></div>
+    <div class="btn-row" id="srActions"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ BATCH CHECK ═══════════════ -->
+<div class="page" id="page-batch">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Batch Check</h2>
+    <span class="header-icon">📦</span>
   </div>
 
-  <script>
-    // ── Telegram WebApp Init ──
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      tg.setHeaderColor('secondary_bg_color');
-      tg.setBackgroundColor('bg_color');
+  <textarea class="batch-input" id="batchInput" placeholder="Enter usernames, one per line or comma-separated...&#10;&#10;example1&#10;example2&#10;example3" maxlength="5000"></textarea>
+  <div class="batch-counter"><span id="batchCount">0</span> usernames</div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="batchBtn" onclick="doBatchCheck()" style="flex:2">
+      <div class="spinner"></div>
+      <span class="btn-text">🚀 Check All</span>
+    </button>
+    <button class="btn-secondary" onclick="clearBatch()" style="flex:1">Clear</button>
+  </div>
+
+  <div class="batch-progress" id="batchProgress">
+    <div class="prog-header">
+      <span class="label" id="bpLabel">Checking...</span>
+      <span class="count" id="bpCount">0/0</span>
+    </div>
+    <div class="prog-bar"><div class="fill" id="bpFill"></div></div>
+    <div class="speed" id="bpSpeed"></div>
+  </div>
+
+  <div id="batchResults"></div>
+</div>
+
+<!-- ═══════════════ GENERATE ═══════════════ -->
+<div class="page" id="page-generate">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Generate & Check</h2>
+    <span class="header-icon">✨</span>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Generation Mode</div>
+    <div class="setting-options" id="genModeOptions">
+      <div class="setting-opt active" data-val="random" onclick="setGenMode('random')">🎲 Random</div>
+      <div class="setting-opt" data-val="word_combo" onclick="setGenMode('word_combo')">🧠 Word Combos</div>
+      <div class="setting-opt" data-val="mixed" onclick="setGenMode('mixed')">🌈 Mixed</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Count</div>
+    <div class="setting-options">
+      <div class="setting-opt active" data-val="10" onclick="setGenCount(10)">10</div>
+      <div class="setting-opt" data-val="20" onclick="setGenCount(20)">20</div>
+      <div class="setting-opt" data-val="50" onclick="setGenCount(50)">50</div>
+      <div class="setting-opt" data-val="100" onclick="setGenCount(100)">100</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="genBtn" onclick="doGenerate()">
+    <div class="spinner"></div>
+    <span class="btn-text">✨ Generate & Check</span>
+  </button>
+
+  <div class="batch-progress" id="genProgress">
+    <div class="prog-header">
+      <span class="label" id="gpLabel">Generating...</span>
+      <span class="count" id="gpCount">0/0</span>
+    </div>
+    <div class="prog-bar"><div class="fill" id="gpFill"></div></div>
+    <div class="speed" id="gpSpeed"></div>
+  </div>
+
+  <div id="genResults"></div>
+</div>
+
+<!-- ═══════════════ PATTERN ═══════════════ -->
+<div class="page" id="page-pattern">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Pattern Templates</h2>
+    <span class="header-icon">🔮</span>
+  </div>
+
+  <div class="pattern-wrap">
+    <input type="text" id="patternInput" placeholder="e.g. user_???? or pro_##_ab" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div style="margin: 12px 0;">
+    <div style="font-size:12px;color:var(--hint);margin-bottom:8px;">Symbols:</div>
+    <div class="pattern-symbols">
+      <span class="sym" onclick="insertPattern('?')"><code>?</code> letter</span>
+      <span class="sym" onclick="insertPattern('#')"><code>#</code> digit</span>
+      <span class="sym" onclick="insertPattern('!')"><code>!</code> alnum</span>
+      <span class="sym" onclick="insertPattern('_')"><code>_</code> underscore</span>
+    </div>
+  </div>
+
+  <div style="margin: 12px 0;">
+    <div style="font-size:12px;color:var(--hint);margin-bottom:8px;">Quick templates:</div>
+    <div class="pattern-templates">
+      <span class="tpl" onclick="usePattern('user_????')">user_????</span>
+      <span class="tpl" onclick="usePattern('name_##_ab')">name_##_ab</span>
+      <span class="tpl" onclick="usePattern('my_!_!_!_tag')">my_!_!_!_tag</span>
+      <span class="tpl" onclick="usePattern('pro_####')">pro_####</span>
+      <span class="tpl" onclick="usePattern('the_????_01')">the_????_01</span>
+      <span class="tpl" onclick="usePattern('x_!_!_!')">x_!_!_!</span>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Count</div>
+    <div class="setting-options">
+      <div class="setting-opt active" data-val="10" onclick="setPatCount(10)">10</div>
+      <div class="setting-opt" data-val="20" onclick="setPatCount(20)">20</div>
+      <div class="setting-opt" data-val="50" onclick="setPatCount(50)">50</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="patBtn" onclick="doPatternCheck()">
+    <div class="spinner"></div>
+    <span class="btn-text">🔮 Generate from Pattern</span>
+  </button>
+
+  <div class="batch-progress" id="patProgress">
+    <div class="prog-header">
+      <span class="label" id="ppLabel">Generating...</span>
+      <span class="count" id="ppCount">0/0</span>
+    </div>
+    <div class="prog-bar"><div class="fill" id="ppFill"></div></div>
+    <div class="speed" id="ppSpeed"></div>
+  </div>
+
+  <div id="patResults"></div>
+</div>
+
+<!-- ═══════════════ HISTORY ═══════════════ -->
+<div class="page" id="page-history">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Check History</h2>
+    <span class="header-icon">📜</span>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:12px;">
+    <button class="btn-secondary" onclick="exportHistory()" style="flex:1">📤 Export</button>
+    <button class="btn-secondary" onclick="clearHistory()" style="flex:1;color:var(--danger)">🗑️ Clear</button>
+  </div>
+
+  <div id="historyContent"></div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div class="page" id="page-settings">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">←</button>
+    <h2>Settings</h2>
+    <span class="header-icon">⚙️</span>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Username Length</div>
+    <div class="setting-options" id="setLength">
+      <div class="setting-opt" data-val="5" onclick="setSetting('length',5)">5</div>
+      <div class="setting-opt active" data-val="6" onclick="setSetting('length',6)">6</div>
+      <div class="setting-opt" data-val="7" onclick="setSetting('length',7)">7</div>
+      <div class="setting-opt" data-val="8" onclick="setSetting('length',8)">8</div>
+      <div class="setting-opt" data-val="10" onclick="setSetting('length',10)">10</div>
+      <div class="setting-opt" data-val="12" onclick="setSetting('length',12)">12</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Character Set</div>
+    <div class="setting-options" id="setChars">
+      <div class="setting-opt active" data-val="default" onclick="setSetting('chars','default')">a-z 0-9 _</div>
+      <div class="setting-opt" data-val="alpha" onclick="setSetting('chars','alpha')">a-z only</div>
+      <div class="setting-opt" data-val="alnum" onclick="setSetting('chars','alnum')">a-z 0-9</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Generation Mode</div>
+    <div class="setting-options" id="setGenMode">
+      <div class="setting-opt active" data-val="random" onclick="setSetting('genMode','random')">🎲 Random</div>
+      <div class="setting-opt" data-val="word_combo" onclick="setSetting('genMode','word_combo')">🧠 Word Combo</div>
+      <div class="setting-opt" data-val="mixed" onclick="setSetting('genMode','mixed')">🌈 Mixed</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-label">Request Delay</div>
+    <div class="setting-options" id="setDelay">
+      <div class="setting-opt" data-val="0.5" onclick="setSetting('delay',0.5)">0.5s</div>
+      <div class="setting-opt active" data-val="1" onclick="setSetting('delay',1)">1.0s</div>
+      <div class="setting-opt" data-val="2" onclick="setSetting('delay',2)">2.0s</div>
+      <div class="setting-opt" data-val="3" onclick="setSetting('delay',3)">3.0s</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="resetSettings()" style="color:var(--danger)">🔄 Reset All</button>
+    <button class="btn-secondary" onclick="showPage('home')">← Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// TELEGRAM WEB APP INIT
+// ══════════════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('secondary_bg_color');
+  tg.setBackgroundColor('bg_color');
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'tg_checker_';
+let stats = loadJSON('stats', { checked: 0, hits: 0, taken: 0, invalid: 0, errors: 0 });
+let history = loadJSON('history', []);
+let settings = loadJSON('settings', { length: 6, chars: 'default', genMode: 'random', delay: 1 });
+let genMode = settings.genMode || 'random';
+let genCount = 20;
+let patCount = 20;
+let batchRunning = false;
+let batchAbort = null;
+
+// ══════════════════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════════════════
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY + key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function saveJSON(key, val) {
+  try { localStorage.setItem(STORAGE_KEY + key, JSON.stringify(val)); } catch {}
+  // Also save to Telegram CloudStorage if available
+  if (tg?.CloudStorage) {
+    tg.CloudStorage.setItem(STORAGE_KEY + key, JSON.stringify(val), () => {});
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('active');
+  if (id === 'home') updateHomeStats();
+  if (id === 'history') renderHistoryPage();
+  if (id === 'settings') renderSettings();
+  haptic('light');
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════════════════════
+// HAPTIC FEEDBACK
+// ══════════════════════════════════════════════════════════════
+function haptic(type = 'light') {
+  if (!tg?.HapticFeedback) return;
+  if (type === 'light' || type === 'medium' || type === 'heavy') tg.HapticFeedback.impactOccurred(type);
+  else if (type === 'success' || type === 'error' || type === 'warning') tg.HapticFeedback.notificationOccurred(type);
+}
+
+// ══════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════
+function toast(msg, dur = 2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ══════════════════════════════════════════════════════════════
+// VALIDATION
+// ══════════════════════════════════════════════════════════════
+function validateUsername(u) {
+  if (!u) return 'Enter a username';
+  if (u.length < 5) return 'Too short (min 5 chars)';
+  if (u.length > 32) return 'Too long (max 32 chars)';
+  if (!/^[a-z]/.test(u)) return 'Must start with a letter';
+  if (!/^[a-z0-9_]+$/.test(u)) return 'Only a-z, 0-9, _ allowed';
+  if (/__/.test(u)) return 'No double underscores (__)';
+  if (u.endsWith('_')) return "Can't end with _";
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHECK AVAILABILITY (via t.me scraping through CORS proxy)
+// ══════════════════════════════════════════════════════════════
+async function checkAvailability(username, signal) {
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/' + username)}`;
+    const resp = await fetch(proxyUrl, { signal: signal || AbortSignal.timeout(12000) });
+    if (resp.status === 404) return 'available';
+    if (!resp.ok) return 'error';
+    const html = await resp.text();
+
+    const hasPhoto = /tgme_page_photo_image/i.test(html);
+    const nameMatch = html.match(/tgme_page_title[^>]*>(.*?)<\/div>/is);
+    const hasName = nameMatch && nameMatch[1].replace(/<[^>]+>/g, '').trim();
+    const subsMatch = html.match(/tgme_page_extra[^>]*>(.*?)<\/div>/is);
+    const hasSubs = subsMatch && (/subscribers/i.test(subsMatch[1]) || /members/i.test(subsMatch[1]));
+    const descMatch = html.match(/tgme_page_description[^>]*dir="auto">(.*?)<\/div>/is);
+    const hasBio = descMatch && descMatch[1].replace(/<[^>]+>/g, '').trim() &&
+      !descMatch[1].toLowerCase().includes(`you can contact @${username} right away`);
+
+    if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
+    return 'available';
+  } catch (e) {
+    return e.name === 'TimeoutError' || e.name === 'AbortError' ? 'error' : 'error';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// RECORD STATS
+// ══════════════════════════════════════════════════════════════
+function recordStat(status) {
+  stats.checked++;
+  if (status === 'available') stats.hits++;
+  else if (status === 'taken') stats.taken++;
+  else if (status === 'invalid') stats.invalid++;
+  else stats.errors++;
+  saveJSON('stats', stats);
+}
+
+function addHistory(username, status) {
+  history.unshift({ username, status, time: Date.now() });
+  if (history.length > 100) history.length = 100;
+  saveJSON('history', history);
+}
+
+// ══════════════════════════════════════════════════════════════
+// HOME STATS
+// ══════════════════════════════════════════════════════════════
+function updateHomeStats() {
+  document.getElementById('statChecked').textContent = stats.checked;
+  document.getElementById('statHits').textContent = stats.hits;
+  document.getElementById('statTaken').textContent = stats.taken;
+  document.getElementById('statRate').textContent = stats.checked ? Math.round(100 * stats.hits / stats.checked) + '%' : '0%';
+}
+
+// ══════════════════════════════════════════════════════════════
+// SINGLE CHECK
+// ══════════════════════════════════════════════════════════════
+const singleInput = document.getElementById('singleInput');
+const singleClear = document.getElementById('singleClear');
+const singleValid = document.getElementById('singleValid');
+const singleBtn = document.getElementById('singleBtn');
+
+singleInput.addEventListener('input', () => {
+  const v = singleInput.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+  singleInput.value = v;
+  singleClear.classList.toggle('show', v.length > 0);
+  singleValid.classList.remove('show');
+  document.getElementById('singleResult').classList.remove('show');
+});
+singleInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSingleCheck(); });
+
+function clearSingle() {
+  singleInput.value = '';
+  singleClear.classList.remove('show');
+  singleValid.classList.remove('show');
+  document.getElementById('singleResult').classList.remove('show');
+  singleInput.focus();
+}
+
+async function doSingleCheck() {
+  const raw = singleInput.value.trim().toLowerCase();
+  const err = validateUsername(raw);
+  if (err) {
+    document.getElementById('singleValidText').textContent = err;
+    singleValid.classList.add('show');
+    haptic('warning');
+    return;
+  }
+  singleValid.classList.remove('show');
+  singleBtn.classList.add('loading');
+  singleBtn.disabled = true;
+
+  try {
+    const status = await checkAvailability(raw);
+    showSingleResult(raw, status);
+    recordStat(status);
+    addHistory(raw, status);
+    haptic(status === 'available' ? 'success' : status === 'taken' ? 'error' : 'warning');
+
+    // Send to bot
+    if (tg?.initDataUnsafe?.user) {
+      tg.sendData(JSON.stringify({ action: 'check', username: raw, status, timestamp: Date.now() }));
     }
+  } catch {
+    showSingleResult(raw, 'error');
+    recordStat('error');
+    addHistory(raw, 'error');
+    haptic('error');
+  } finally {
+    singleBtn.classList.remove('loading');
+    singleBtn.disabled = false;
+  }
+}
 
-    // ── State ──
-    const VALID_CHARS = /^[a-z][a-z0-9_]{4,31}$/;
-    const DOUBLE_UNDER = /__/;
-    const history = JSON.parse(localStorage.getItem('check_history') || '[]');
+function showSingleResult(username, status) {
+  const cfg = {
+    available: { icon: '🎉', text: 'AVAILABLE!', color: 'var(--success)', sub: `@${username} is available — claim it now!` },
+    taken:     { icon: '❌', text: 'Taken',      color: 'var(--danger)',  sub: `@${username} is already registered` },
+    invalid:   { icon: '🚫', text: 'Invalid',    color: 'var(--warning)', sub: `@${username} is not a valid username` },
+    error:     { icon: '⚠️', text: 'Error',       color: 'var(--hint)',    sub: 'Could not check — try again' },
+  }[status] || { icon: '⚠️', text: 'Error', color: 'var(--hint)', sub: 'Unknown error' };
 
-    const input = document.getElementById('usernameInput');
-    const checkBtn = document.getElementById('checkBtn');
-    const resultCard = document.getElementById('resultCard');
-    const validationMsg = document.getElementById('validationMsg');
-    const validationText = document.getElementById('validationText');
-    const clearBtn = document.getElementById('clearBtn');
+  document.getElementById('srIcon').textContent = cfg.icon;
+  document.getElementById('srText').textContent = cfg.text;
+  document.getElementById('srText').style.color = cfg.color;
+  document.getElementById('srSub').innerHTML = `<code>@${username}</code><br>${cfg.sub}`;
 
-    // ── Input Handling ──
-    input.addEventListener('input', () => {
-      const val = input.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-      input.value = val;
-      clearBtn.classList.toggle('visible', val.length > 0);
-      hideValidation();
-      hideResult();
+  let btns = '';
+  if (status === 'available') {
+    btns += `<button class="btn-sm" style="background:var(--btn);color:var(--btn-text)" onclick="window.open('https://t.me/${username}','_blank')">📱 Open</button>`;
+    btns += `<button class="btn-sm" style="background:var(--sec-bg)" onclick="copyText('@${username}')">📋 Copy</button>`;
+    btns += `<button class="btn-sm" style="background:var(--success);color:#fff" onclick="sendToBot('${username}','available')">✅ Claim</button>`;
+  } else if (status === 'taken') {
+    btns += `<button class="btn-sm" style="background:var(--btn);color:var(--btn-text)" onclick="window.open('https://t.me/${username}','_blank')">📱 View</button>`;
+  }
+  document.getElementById('srActions').innerHTML = btns;
+  document.getElementById('singleResult').classList.add('show');
+}
+
+function sendToBot(username, status) {
+  if (tg?.initDataUnsafe?.user) {
+    tg.sendData(JSON.stringify({ action: 'check', username, status, timestamp: Date.now() }));
+    toast('Sent to bot!');
+  }
+  haptic('light');
+}
+
+// ══════════════════════════════════════════════════════════════
+// BATCH CHECK
+// ══════════════════════════════════════════════════════════════
+const batchInput = document.getElementById('batchInput');
+batchInput.addEventListener('input', () => {
+  const names = parseBatchInput(batchInput.value);
+  document.getElementById('batchCount').textContent = names.length;
+});
+
+function parseBatchInput(text) {
+  return text.split(/[\n,]+/).map(s => s.trim().toLowerCase().replace(/^@/, '')).filter(s => s.length >= 5 && s.length <= 32);
+}
+
+function clearBatch() {
+  batchInput.value = '';
+  document.getElementById('batchCount').textContent = '0';
+  document.getElementById('batchResults').innerHTML = '';
+  document.getElementById('batchProgress').classList.remove('show');
+}
+
+async function doBatchCheck() {
+  const names = parseBatchInput(batchInput.value);
+  if (names.length === 0) { toast('Enter some usernames first'); haptic('warning'); return; }
+  if (names.length > 200) { toast('Max 200 per batch'); haptic('warning'); return; }
+
+  batchRunning = true;
+  const btn = document.getElementById('batchBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const progress = document.getElementById('batchProgress');
+  const resultsDiv = document.getElementById('batchResults');
+  progress.classList.add('show');
+  resultsDiv.innerHTML = '';
+
+  let done = 0, hits = 0, taken = 0, errs = 0;
+  const startTime = Date.now();
+  const results = [];
+  const controller = new AbortController();
+  batchAbort = controller;
+
+  // Process in small concurrent batches
+  const CONCURRENCY = 3;
+  const delay = settings.delay * 1000;
+
+  for (let i = 0; i < names.length; i += CONCURRENCY) {
+    if (!batchRunning) break;
+    const batch = names.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (name) => {
+      const validErr = validateUsername(name);
+      if (validErr) return { name, status: 'invalid' };
+      return { name, status: await checkAvailability(name, controller.signal) };
     });
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') checkUsername();
-    });
+    const batchResults = await Promise.all(promises);
+    for (const r of batchResults) {
+      done++;
+      results.push(r);
+      recordStat(r.status);
+      addHistory(r.name, r.status);
+      if (r.status === 'available') hits++;
+      else if (r.status === 'taken') taken++;
+      else errs++;
 
-    function clearInput() {
-      input.value = '';
-      clearBtn.classList.remove('visible');
-      hideValidation();
-      hideResult();
-      input.focus();
+      // Update progress
+      const elapsed = (Date.now() - startTime) / 1000;
+      const speed = done / elapsed;
+      document.getElementById('bpCount').textContent = `${done}/${names.length}`;
+      document.getElementById('bpFill').style.width = `${100 * done / names.length}%`;
+      document.getElementById('bpSpeed').textContent = `${speed.toFixed(1)}/sec`;
+      document.getElementById('bpLabel').textContent = done < names.length ? 'Checking...' : 'Done!';
     }
 
-    function hideValidation() {
-      validationMsg.classList.remove('visible');
+    if (i + CONCURRENCY < names.length && batchRunning) {
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+
+  // Render final results
+  batchRunning = false;
+  btn.classList.remove('loading'); btn.disabled = false;
+  haptic('success');
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  let html = `
+    <div class="summary-grid">
+      <div class="summary-card blue"><div class="s-num">${done}</div><div class="s-lbl">Checked</div></div>
+      <div class="summary-card green"><div class="s-num">${hits}</div><div class="s-lbl">Available</div></div>
+      <div class="summary-card red"><div class="s-num">${taken}</div><div class="s-lbl">Taken</div></div>
+      <div class="summary-card yellow"><div class="s-num">${errs}</div><div class="s-lbl">Errors</div></div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--hint);margin:8px 0">⏱️ ${elapsed}s · ${done > 0 ? (done/elapsed).toFixed(1) : 0}/sec</div>
+  `;
+
+  // Available names first, then taken, then rest
+  const sorted = [...results].sort((a, b) => {
+    const order = { available: 0, taken: 1, invalid: 2, error: 3 };
+    return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+  });
+
+  const avail = sorted.filter(r => r.status === 'available');
+  if (avail.length > 0) {
+    html += `<div style="margin:12px 0"><button class="btn-secondary" onclick="exportAvailable(${JSON.stringify(avail.map(r=>r.name))})">📤 Export Available Names</button></div>`;
+  }
+
+  html += '<div class="results-list">';
+  for (const r of sorted) {
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[r.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[r.status] || 'Error';
+    html += `<div class="result-item">
+      <span class="ri-name">@${r.name}</span>
+      <span class="ri-actions">
+        ${r.status === 'available' ? `<button class="btn-sm" style="background:var(--sec-bg);font-size:11px;padding:4px 8px" onclick="copyText('@${r.name}')">📋</button>` : ''}
+        <span class="badge ${badgeClass}">${label}</span>
+      </span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Send batch summary to bot
+  if (tg?.initDataUnsafe?.user && done > 0) {
+    const avail = results.filter(r => r.status === 'available').map(r => r.name);
+    tg.sendData(JSON.stringify({
+      action: 'batch_result', total: done, hits, taken, errors: errs,
+      elapsed, available: avail.slice(0, 20)
+    }));
+  }
+
+  resultsDiv.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// GENERATE
+// ══════════════════════════════════════════════════════════════
+function setGenMode(mode) {
+  genMode = mode;
+  document.querySelectorAll('#genModeOptions .setting-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === mode);
+  });
+  haptic('light');
+}
+
+function setGenCount(n) {
+  genCount = n;
+  const opts = document.getElementById('page-generate').querySelectorAll('.setting-group:nth-child(2) .setting-opt');
+  opts.forEach(el => el.classList.toggle('active', parseInt(el.dataset.val) === n));
+  haptic('light');
+}
+
+// Username generators
+const ADJECTIVES = ['fast','cool','cyber','pixel','quantum','dark','neon','ultra','mega','hyper','wild','epic','pro','alpha','omega','prime','royal','cosmic','lunar','solar','fire','ice','storm','swift','zen','nova','vibe','ghost','shadow','steel','crypto','turbo','nano','micro','macro','deep','bright','bold','calm','raw'];
+const NOUNS = ['coder','ninja','dragon','phoenix','wolf','hawk','tiger','lion','bear','eagle','shark','fox','cat','bot','dev','geek','hacker','maker','builder','runner','rider','surfer','player','gamer','star','moon','sun','sky','ocean','wave','storm','blade','shield','crown','king','queen','lord','master','chief','boss','ace'];
+
+function generateUsername(mode) {
+  const len = settings.length || 6;
+  const chars = settings.chars === 'alpha' ? 'abcdefghijklmnopqrstuvwxyz' : settings.chars === 'alnum' ? 'abcdefghijklmnopqrstuvwxyz0123456789' : 'abcdefghijklmnopqrstuvwxyz0123456789_';
+
+  if (mode === 'word_combo' || (mode === 'mixed' && Math.random() > 0.5)) {
+    const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    const num = Math.random() > 0.4 ? Math.floor(Math.random() * 999) + 1 : '';
+    return adj + noun + num;
+  }
+
+  // Random
+  let name = '';
+  const letters = 'abcdefghijklmnopqrstuvwxyz';
+  name += letters[Math.floor(Math.random() * letters.length)];
+  for (let i = 1; i < len; i++) {
+    name += chars[Math.floor(Math.random() * chars.length)];
+  }
+  // Clean up: no double __, no trailing _
+  name = name.replace(/__/g, '_').replace(/_+$/, '');
+  return name;
+}
+
+async function doGenerate() {
+  const btn = document.getElementById('genBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const progress = document.getElementById('genProgress');
+  const resultsDiv = document.getElementById('genResults');
+  progress.classList.add('show');
+  resultsDiv.innerHTML = '';
+
+  const seen = new Set();
+  const names = [];
+  while (names.length < genCount) {
+    let n = generateUsername(genMode);
+    if (!seen.has(n) && validateUsername(n) === null) {
+      seen.add(n);
+      names.push(n);
+    }
+    if (seen.size > genCount * 10) break; // safety
+  }
+
+  let done = 0, hits = 0, taken = 0, errs = 0;
+  const startTime = Date.now();
+  const results = [];
+  const delay = settings.delay * 1000;
+  const CONCURRENCY = 3;
+
+  for (let i = 0; i < names.length; i += CONCURRENCY) {
+    const batch = names.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (name) => ({ name, status: await checkAvailability(name) }));
+    const batchResults = await Promise.all(promises);
+
+    for (const r of batchResults) {
+      done++;
+      results.push(r);
+      recordStat(r.status);
+      addHistory(r.name, r.status);
+      if (r.status === 'available') hits++;
+      else if (r.status === 'taken') taken++;
+      else errs++;
+
+      const elapsed = (Date.now() - startTime) / 1000;
+      document.getElementById('gpCount').textContent = `${done}/${names.length}`;
+      document.getElementById('gpFill').style.width = `${100 * done / names.length}%`;
+      document.getElementById('gpSpeed').textContent = `${(done / elapsed).toFixed(1)}/sec`;
+      document.getElementById('gpLabel').textContent = done < names.length ? 'Checking...' : 'Done!';
     }
 
-    function showValidation(msg) {
-      validationText.textContent = msg;
-      validationMsg.classList.add('visible');
+    if (i + CONCURRENCY < names.length) await new Promise(r => setTimeout(r, delay));
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  haptic('success');
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  // Send generate results to bot
+  if (tg?.initDataUnsafe?.user && done > 0) {
+    const avail = results.filter(r => r.status === 'available').map(r => r.name);
+    tg.sendData(JSON.stringify({
+      action: 'generate_result', mode: genMode, total: done, hits,
+      taken, errors: errs, elapsed, available: avail.slice(0, 20)
+    }));
+  }
+
+  renderBatchResults(resultsDiv, results, done, hits, taken, errs, elapsed);
+}
+
+// ══════════════════════════════════════════════════════════════
+// PATTERN
+// ══════════════════════════════════════════════════════════════
+function insertPattern(sym) {
+  const input = document.getElementById('patternInput');
+  const pos = input.selectionStart;
+  input.value = input.value.slice(0, pos) + sym + input.value.slice(pos);
+  input.focus();
+  input.setSelectionRange(pos + 1, pos + 1);
+  haptic('light');
+}
+
+function usePattern(tpl) {
+  document.getElementById('patternInput').value = tpl;
+  haptic('light');
+  toast('Pattern set!');
+}
+
+function setPatCount(n) {
+  patCount = n;
+  const opts = document.getElementById('page-pattern').querySelectorAll('.setting-group .setting-opt');
+  opts.forEach(el => el.classList.toggle('active', parseInt(el.dataset.val) === n));
+  haptic('light');
+}
+
+function generateFromPattern(pattern) {
+  const names = [];
+  const seen = new Set();
+  let attempts = 0;
+  while (names.length < patCount && attempts < patCount * 20) {
+    attempts++;
+    let name = '';
+    for (const ch of pattern) {
+      if (ch === '?') name += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+      else if (ch === '#') name += '0123456789'[Math.floor(Math.random() * 10)];
+      else if (ch === '!') name += 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)];
+      else name += ch;
+    }
+    if (!seen.has(name) && validateUsername(name) === null) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+async function doPatternCheck() {
+  const pattern = document.getElementById('patternInput').value.trim();
+  if (!pattern) { toast('Enter a pattern first'); haptic('warning'); return; }
+  if (pattern.length < 5) { toast('Pattern too short (min 5 chars)'); haptic('warning'); return; }
+  if (pattern.length > 32) { toast('Pattern too long (max 32 chars)'); haptic('warning'); return; }
+
+  const names = generateFromPattern(pattern);
+  if (names.length === 0) { toast('Could not generate valid names'); haptic('warning'); return; }
+
+  const btn = document.getElementById('patBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const progress = document.getElementById('patProgress');
+  const resultsDiv = document.getElementById('patResults');
+  progress.classList.add('show');
+  resultsDiv.innerHTML = '';
+
+  let done = 0, hits = 0, taken = 0, errs = 0;
+  const startTime = Date.now();
+  const results = [];
+  const delay = settings.delay * 1000;
+  const CONCURRENCY = 3;
+
+  for (let i = 0; i < names.length; i += CONCURRENCY) {
+    const batch = names.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (name) => ({ name, status: await checkAvailability(name) }));
+    const batchResults = await Promise.all(promises);
+
+    for (const r of batchResults) {
+      done++;
+      results.push(r);
+      recordStat(r.status);
+      addHistory(r.name, r.status);
+      if (r.status === 'available') hits++;
+      else if (r.status === 'taken') taken++;
+      else errs++;
+
+      const elapsed = (Date.now() - startTime) / 1000;
+      document.getElementById('ppCount').textContent = `${done}/${names.length}`;
+      document.getElementById('ppFill').style.width = `${100 * done / names.length}%`;
+      document.getElementById('ppSpeed').textContent = `${(done / elapsed).toFixed(1)}/sec`;
+      document.getElementById('ppLabel').textContent = done < names.length ? 'Checking...' : 'Done!';
     }
 
-    function hideResult() {
-      resultCard.classList.remove('visible');
-    }
+    if (i + CONCURRENCY < names.length) await new Promise(r => setTimeout(r, delay));
+  }
 
-    // ── Username Validation ──
-    function validate(username) {
-      if (!username) return 'Enter a username';
-      if (username.length < 5) return 'Too short (min 5 characters)';
-      if (username.length > 32) return 'Too long (max 32 characters)';
-      if (!/^[a-z]/.test(username)) return 'Must start with a letter';
-      if (!/^[a-z0-9_]+$/.test(username)) return 'Only a-z, 0-9, and _ allowed';
-      if (DOUBLE_UNDER.test(username)) return 'No double underscores (__)';
-      if (username.endsWith('_')) return "Can't end with underscore";
-      return null;
-    }
+  btn.classList.remove('loading'); btn.disabled = false;
+  haptic('success');
 
-    // ── Check Username ──
-    async function checkUsername() {
-      const raw = input.value.trim().toLowerCase();
-      const error = validate(raw);
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const pattern = document.getElementById('patternInput').value.trim();
 
-      if (error) {
-        showValidation(error);
-        return;
-      }
+  // Send pattern results to bot
+  if (tg?.initDataUnsafe?.user && done > 0) {
+    const avail = results.filter(r => r.status === 'available').map(r => r.name);
+    tg.sendData(JSON.stringify({
+      action: 'pattern_result', pattern, total: done, hits,
+      taken, errors: errs, elapsed, available: avail.slice(0, 20)
+    }));
+  }
 
-      hideValidation();
-      checkBtn.classList.add('loading');
-      checkBtn.disabled = true;
-      hideResult();
+  renderBatchResults(resultsDiv, results, done, hits, taken, errs, elapsed);
+}
 
-      try {
-        const status = await checkAvailability(raw);
-        showResult(raw, status);
-        addToHistory(raw, status);
+// ══════════════════════════════════════════════════════════════
+// SHARED BATCH RESULTS RENDERER
+// ══════════════════════════════════════════════════════════════
+function renderBatchResults(container, results, done, hits, taken, errs, elapsed) {
+  let html = `
+    <div class="summary-grid">
+      <div class="summary-card blue"><div class="s-num">${done}</div><div class="s-lbl">Checked</div></div>
+      <div class="summary-card green"><div class="s-num">${hits}</div><div class="s-lbl">Available</div></div>
+      <div class="summary-card red"><div class="s-num">${taken}</div><div class="s-lbl">Taken</div></div>
+      <div class="summary-card yellow"><div class="s-num">${errs}</div><div class="s-lbl">Errors</div></div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--hint);margin:8px 0">⏱️ ${elapsed}s · ${done > 0 ? (done/parseFloat(elapsed)).toFixed(1) : 0}/sec</div>
+  `;
 
-        // Send result back to bot if in WebApp context
-        if (tg?.initDataUnsafe?.user) {
-          tg.sendData(JSON.stringify({
-            action: 'check',
-            username: raw,
-            status: status,
-            timestamp: Date.now()
-          }));
-        }
-      } catch (err) {
-        showResult(raw, 'error');
-      } finally {
-        checkBtn.classList.remove('loading');
-        checkBtn.disabled = false;
-      }
-    }
+  const sorted = [...results].sort((a, b) => {
+    const order = { available: 0, taken: 1, invalid: 2, error: 3 };
+    return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+  });
 
-    // ── Check Availability via t.me scraping ──
-    async function checkAvailability(username) {
-      try {
-        // Use a CORS proxy to fetch t.me page
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/' + username)}`;
-        const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+  const avail = sorted.filter(r => r.status === 'available');
+  if (avail.length > 0) {
+    html += `<div style="margin:12px 0"><button class="btn-secondary" onclick="exportAvailable(${JSON.stringify(avail.map(r=>r.name))})">📤 Export Available Names</button></div>`;
+  }
 
-        if (resp.status === 404) return 'available';
-        if (!resp.ok) return 'error';
+  html += '<div class="results-list">';
+  for (const r of sorted) {
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[r.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[r.status] || 'Error';
+    html += `<div class="result-item">
+      <span class="ri-name">@${r.name}</span>
+      <span class="ri-actions">
+        ${r.status === 'available' ? `<button class="btn-sm" style="background:var(--sec-bg);font-size:11px;padding:4px 8px" onclick="copyText('@${r.name}')">📋</button>` : ''}
+        <span class="badge ${badgeClass}">${label}</span>
+      </span>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
 
-        const html = await resp.text();
+// ══════════════════════════════════════════════════════════════
+// HISTORY PAGE
+// ══════════════════════════════════════════════════════════════
+function renderHistoryPage() {
+  const container = document.getElementById('historyContent');
+  if (history.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="icon">📜</div><div class="text">No checks yet</div></div>';
+    return;
+  }
 
-        // Detection logic (same as checker/telegram_client.py)
-        const hasPhoto = /tgme_page_photo_image/i.test(html);
-        const nameMatch = html.match(/tgme_page_title[^>]*>(.*?)<\/div>/is);
-        const hasName = nameMatch && nameMatch[1].replace(/<[^>]+>/g, '').trim();
-        const subsMatch = html.match(/tgme_page_extra[^>]*>(.*?)<\/div>/is);
-        const hasSubs = subsMatch && (/subscribers/i.test(subsMatch[1]) || /members/i.test(subsMatch[1]));
-        const descMatch = html.match(/tgme_page_description[^>]*dir="auto">(.*?)<\/div>/is);
-        const hasBio = descMatch && descMatch[1].replace(/<[^>]+>/g, '').trim() &&
-          !descMatch[1].toLowerCase().includes(`you can contact @${username} right away`);
+  let html = '<div class="history-list">';
+  for (const h of history.slice(0, 50)) {
+    const badgeClass = { available: 'badge-avail', taken: 'badge-taken', invalid: 'badge-invalid', error: 'badge-error' }[h.status] || 'badge-error';
+    const label = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[h.status] || 'Error';
+    const ago = getTimeAgo(h.time);
+    html += `<div class="history-item">
+      <span class="hi-name">@${h.username}</span>
+      <span class="hi-right">
+        <span class="hi-time">${ago}</span>
+        <span class="badge ${badgeClass}">${label}</span>
+      </span>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
 
-        if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
-        return 'available';
-      } catch (e) {
-        if (e.name === 'TimeoutError') return 'error';
-        return 'error';
-      }
-    }
+function getTimeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return 'now';
+  if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h`;
+  return `${Math.floor(sec / 86400)}d`;
+}
 
-    // ── Show Result ──
-    function showResult(username, status) {
-      const iconEl = document.getElementById('statusIcon');
-      const textEl = document.getElementById('statusText');
-      const displayEl = document.getElementById('usernameDisplay');
-      const actionsEl = document.getElementById('resultActions');
+function clearHistory() {
+  history = [];
+  saveJSON('history', history);
+  renderHistoryPage();
+  toast('History cleared');
+  haptic('light');
+}
 
-      const configs = {
-        available: {
-          icon: '🎉',
-          text: 'AVAILABLE!',
-          color: 'var(--success)',
-          display: `@${username} is available`
-        },
-        taken: {
-          icon: '❌',
-          text: 'Taken',
-          color: 'var(--danger)',
-          display: `@${username} is already registered`
-        },
-        invalid: {
-          icon: '🚫',
-          text: 'Invalid',
-          color: 'var(--warning)',
-          display: `@${username} is not valid`
-        },
-        error: {
-          icon: '⚠️',
-          text: 'Error',
-          color: 'var(--hint)',
-          display: 'Could not check — try again'
-        }
-      };
+function exportHistory() {
+  if (history.length === 0) { toast('Nothing to export'); return; }
+  const text = history.map(h => `@${h.username} — ${h.status}`).join('\n');
+  downloadText('username_history.txt', text);
+  toast('Exported!');
+  haptic('success');
+}
 
-      const cfg = configs[status] || configs.error;
-      iconEl.textContent = cfg.icon;
-      textEl.textContent = cfg.text;
-      textEl.style.color = cfg.color;
-      displayEl.innerHTML = `<code>@${username}</code>`;
+function exportAvailable(names) {
+  const text = names.map(n => `@${n}`).join('\n');
+  downloadText('available_usernames.txt', text);
+  toast('Exported!');
+  haptic('success');
+}
 
-      // Build action buttons
-      let buttons = '';
-      if (status === 'available') {
-        buttons += `<button class="btn-open" onclick="window.open('https://t.me/${username}','_blank')">📱 Open</button>`;
-        buttons += `<button class="btn-copy" onclick="copyUsername('${username}')">📋 Copy</button>`;
-      } else if (status === 'taken') {
-        buttons += `<button class="btn-open" onclick="window.open('https://t.me/${username}','_blank')">📱 View Profile</button>`;
-      }
-      actionsEl.innerHTML = buttons;
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
 
-      resultCard.classList.add('visible');
+// ══════════════════════════════════════════════════════════════
+// SETTINGS PAGE
+// ══════════════════════════════════════════════════════════════
+function renderSettings() {
+  updateSettingUI('setLength', settings.length);
+  updateSettingUI('setChars', settings.chars);
+  updateSettingUI('setGenMode', settings.genMode);
+  updateSettingUI('setDelay', settings.delay);
+}
 
-      // Haptic feedback
-      if (tg?.HapticFeedback) {
-        if (status === 'available') tg.HapticFeedback.notificationOccurred('success');
-        else if (status === 'taken') tg.HapticFeedback.notificationOccurred('error');
-        else tg.HapticFeedback.notificationOccurred('warning');
-      }
-    }
+function updateSettingUI(groupId, val) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.querySelectorAll('.setting-opt').forEach(el => {
+    const dv = el.dataset.val;
+    el.classList.toggle('active', dv == val || parseFloat(dv) === val);
+  });
+}
 
-    // ── Copy Username ──
-    function copyUsername(username) {
-      const text = `@${username}`;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+function setSetting(key, val) {
+  settings[key] = val;
+  saveJSON('settings', settings);
+  if (key === 'genMode') genMode = val;
+  renderSettings();
+  toast(`${key}: ${val}`);
+  haptic('light');
+}
 
-      // Brief visual feedback
-      const btn = event.target;
-      const orig = btn.textContent;
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => btn.textContent = orig, 1500);
-    }
+function resetSettings() {
+  settings = { length: 6, chars: 'default', genMode: 'random', delay: 1 };
+  saveJSON('settings', settings);
+  genMode = 'random';
+  renderSettings();
+  toast('Settings reset');
+  haptic('medium');
+}
 
-    // ── History ──
-    function addToHistory(username, status) {
-      history.unshift({ username, status, time: Date.now() });
-      if (history.length > 20) history.pop();
-      localStorage.setItem('check_history', JSON.stringify(history));
-      renderHistory();
-    }
+// ══════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════
+function copyText(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  toast('Copied!');
+  haptic('light');
+}
 
-    function renderHistory() {
-      const section = document.getElementById('historySection');
-      const list = document.getElementById('historyList');
-
-      if (history.length === 0) {
-        section.style.display = 'none';
-        return;
-      }
-
-      section.style.display = 'block';
-      list.innerHTML = history.slice(0, 10).map(h => {
-        const badgeClass = `badge-${h.status}`;
-        const statusLabel = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[h.status] || 'Error';
-        const timeAgo = getTimeAgo(h.time);
-        return `<div class="history-item">
-          <span class="name">@${h.username}</span>
-          <span style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--hint)">${timeAgo}</span>
-            <span class="badge ${badgeClass}">${statusLabel}</span>
-          </span>
-        </div>`;
-      }).join('');
-    }
-
-    function getTimeAgo(ts) {
-      const sec = Math.floor((Date.now() - ts) / 1000);
-      if (sec < 60) return 'now';
-      if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-      if (sec < 86400) return `${Math.floor(sec / 3600)}h`;
-      return `${Math.floor(sec / 86400)}d`;
-    }
-
-    // ── Init ──
-    renderHistory();
-    input.focus();
-  </script>
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+updateHomeStats();
+</script>
 </body>
 </html>

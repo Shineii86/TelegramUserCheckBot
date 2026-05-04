@@ -31,7 +31,7 @@ from checker.generator import UsernameGenerator
 
 
 # ── Constants ──
-VERSION = "3.1"
+VERSION = "3.2"
 DIVIDER = "─" * 26
 THICK_DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━━━━━"
 THIN_DIVIDER = "· · · · · · · · · · · · · ·"
@@ -959,13 +959,147 @@ async def handle_webapp_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     action = data.get("action")
+    session = get_session(update.effective_user.id)
+
     if action == "check":
         username = data.get("username", "").strip().lower()
         status = data.get("status", "error")
-        session = get_session(update.effective_user.id)
         session.record(status, username)
         text, kb = _render_check_result(username, status, session)
         await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    elif action == "batch_result":
+        # Batch results summary from webapp
+        total = data.get("total", 0)
+        hits = data.get("hits", 0)
+        taken = data.get("taken", 0)
+        errors = data.get("errors", 0)
+        elapsed = data.get("elapsed", "0")
+        available_list = data.get("available", [])
+
+        # Record stats
+        for _ in range(hits):
+            session.record("available", "")
+        for _ in range(taken):
+            session.record("taken", "")
+        for _ in range(errors):
+            session.record("error", "")
+
+        text = (
+            f"{E['pack']} <b>Batch Check Complete</b>\n{THICK_DIVIDER}\n\n"
+            f"  {E['magnifier']} Checked: <b>{total}</b>\n"
+            f"  {E['hit']} Available: <b>{hits}</b>\n"
+            f"  {E['taken']} Taken: <b>{taken}</b>\n"
+            f"  {E['error']} Errors: <b>{errors}</b>\n\n"
+            f"  {E['clock']} Time: <b>{elapsed}s</b>\n"
+        )
+        if available_list:
+            hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in available_list[:10])
+            text += f"\n  {E['star']} <b>Available Names:</b>\n{hit_list}"
+            if len(available_list) > 10:
+                text += f"\n    {E['bulb']} ...and {len(available_list) - 10} more"
+
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"{E['check']} Check Again", switch_inline_query_current_chat=""),
+             InlineKeyboardButton(f"{E['magic']} Generate", callback_data="qg")],
+            [InlineKeyboardButton(f"{E['stats']} Stats", callback_data="st"),
+             InlineKeyboardButton(f"{E['back']} Home", callback_data="b")],
+        ])
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    elif action == "generate_result":
+        # Generate results from webapp
+        mode = data.get("mode", "random")
+        total = data.get("total", 0)
+        hits = data.get("hits", 0)
+        taken = data.get("taken", 0)
+        errors = data.get("errors", 0)
+        elapsed = data.get("elapsed", "0")
+        available_list = data.get("available", [])
+
+        for _ in range(hits):
+            session.record("available", "")
+        for _ in range(taken):
+            session.record("taken", "")
+        for _ in range(errors):
+            session.record("error", "")
+
+        mode_label = {"random": "🎲 Random", "word_combo": "🧠 Word Combos", "mixed": "🌈 Mixed"}.get(mode, mode)
+        text = (
+            f"{E['magic']} <b>Generation Complete</b>\n{THICK_DIVIDER}\n\n"
+            f"  {E['gear']} Mode: <b>{mode_label}</b>\n"
+            f"  {E['magnifier']} Checked: <b>{total}</b>\n"
+            f"  {E['hit']} Available: <b>{hits}</b>\n"
+            f"  {E['taken']} Taken: <b>{taken}</b>\n"
+            f"  {E['error']} Errors: <b>{errors}</b>\n\n"
+            f"  {E['clock']} Time: <b>{elapsed}s</b>\n"
+        )
+        if available_list:
+            hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in available_list[:10])
+            text += f"\n  {E['star']} <b>Available Names:</b>\n{hit_list}"
+            if len(available_list) > 10:
+                text += f"\n    {E['bulb']} ...and {len(available_list) - 10} more"
+
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"{E['magic']} Generate More", callback_data="qg"),
+             InlineKeyboardButton(f"{E['crystal']} Pattern", callback_data="pm")],
+            [InlineKeyboardButton(f"{E['stats']} Stats", callback_data="st"),
+             InlineKeyboardButton(f"{E['back']} Home", callback_data="b")],
+        ])
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    elif action == "pattern_result":
+        # Pattern results from webapp
+        pattern = data.get("pattern", "")
+        total = data.get("total", 0)
+        hits = data.get("hits", 0)
+        taken = data.get("taken", 0)
+        errors = data.get("errors", 0)
+        elapsed = data.get("elapsed", "0")
+        available_list = data.get("available", [])
+
+        for _ in range(hits):
+            session.record("available", "")
+        for _ in range(taken):
+            session.record("taken", "")
+        for _ in range(errors):
+            session.record("error", "")
+
+        text = (
+            f"{E['crystal']} <b>Pattern Check Complete</b>\n{THICK_DIVIDER}\n\n"
+            f"  {E['memo']} Pattern: <code>{pattern}</code>\n"
+            f"  {E['magnifier']} Checked: <b>{total}</b>\n"
+            f"  {E['hit']} Available: <b>{hits}</b>\n"
+            f"  {E['taken']} Taken: <b>{taken}</b>\n"
+            f"  {E['error']} Errors: <b>{errors}</b>\n\n"
+            f"  {E['clock']} Time: <b>{elapsed}s</b>\n"
+        )
+        if available_list:
+            hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in available_list[:10])
+            text += f"\n  {E['star']} <b>Available Names:</b>\n{hit_list}"
+
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"{E['crystal']} New Pattern", callback_data="pm"),
+             InlineKeyboardButton(f"{E['magic']} Generate", callback_data="qg")],
+            [InlineKeyboardButton(f"{E['stats']} Stats", callback_data="st"),
+             InlineKeyboardButton(f"{E['back']} Home", callback_data="b")],
+        ])
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    elif action == "export":
+        # Export available names from webapp
+        names = data.get("names", [])
+        if names:
+            text = (
+                f"{E['export']} <b>Exported Available Names</b>\n{THICK_DIVIDER}\n\n"
+                + "\n".join(f"  {E['hit']} <code>@{n}</code>" for n in names)
+            )
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton(f"{E['check']} Check More", switch_inline_query_current_chat=""),
+                 InlineKeyboardButton(f"{E['back']} Home", callback_data="b")],
+            ])
+            await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
     else:
         await update.message.reply_text(
             f"{E['bulb']} Web app data received.",

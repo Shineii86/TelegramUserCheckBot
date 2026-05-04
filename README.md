@@ -1,12 +1,12 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.1&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.2&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
-[![Version](https://img.shields.io/badge/Version-3.1-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
+[![Version](https://img.shields.io/badge/Version-3.2-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
@@ -103,6 +103,14 @@
 | | Copy to Clipboard | Quick-copy available usernames |
 | | Speed Tracking | Real-time checks/sec in batch & generate |
 | | Time-Aware Greeting | Welcome message adapts to time of day |
+| 🌐 **Web App** | Full Mini App | 7-page app: Home, Single, Batch, Generate, Pattern, History, Settings |
+| | Batch from Web App | Check up to 200 usernames with live progress bar |
+| | Generate & Check | Random, Word Combo, Mixed modes with configurable count |
+| | Pattern Templates | Quick-tap symbol insert and preset templates |
+| | Session Stats | Live stats bar with checked/available/taken/hit rate |
+| | Export Results | Download available names or history as .txt files |
+| | Haptic Feedback | Native Telegram haptics on all interactions |
+| | CloudStorage | Settings persist across sessions via Telegram CloudStorage |
 | 📓 **Colab** | One-Click Bot | Launch Telegram bot directly from notebook |
 | | Textarea Input | Multi-line username input with Run button |
 | | Config Sliders | Sliders, dropdowns, and toggles for all settings |
@@ -510,6 +518,21 @@ Patterns let you generate usernames from a template. Use special characters as p
 4. Click ▶️ — the bot starts!
 5. Open Telegram → find your bot → `/start`
 6. Keep the cell running while you use the bot
+</details>
+
+<details>
+<summary><b>What's new in v3.2?</b></summary>
+
+- **Full Web App overhaul** — Complete page-based mini app with 7 pages
+- **Batch checking** — Check up to 200 usernames from the Web App
+- **Generate & Check** — Random, Word Combo, Mixed modes with progress bar
+- **Pattern templates** — Full pattern syntax with quick-tap symbols and presets
+- **Session stats** — Live stats bar, history page, and export to file
+- **Settings page** — Configure length, chars, gen mode, delay from the Web App
+- **Haptic feedback & animations** — Rich native Telegram feel
+- **CloudStorage sync** — Settings persist across sessions
+- **Rich bot responses** — Webapp results send formatted cards back to chat
+- See [CHANGELOG.md](CHANGELOG.md) for full details
 </details>
 
 <details>

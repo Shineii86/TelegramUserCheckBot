@@ -7,9 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.0] — 2026-05-04
+
+### 🌐 Full Web App (Mini App) Overhaul
+
+#### ✨ Added — Web App Features
+- **Complete page-based UI** — Home, Single Check, Batch Check, Generate, Pattern, History, Settings
+- **Batch checking** — Check up to 200 usernames at once with real-time progress bar
+- **Generate & Check** — Random, Word Combo, and Mixed generation modes with configurable count (10/20/50/100)
+- **Pattern templates** — Full pattern syntax with `?`=letter `#`=digit `!`=alnum, quick-tap symbol insert, and 6 preset templates
+- **Session statistics** — Live stats bar on home page (checked, available, taken, hit rate)
+- **Check history** — Scrollable history with timestamps, export to `.txt`, and clear
+- **Settings page** — Configure username length, character set, generation mode, and request delay
+- **Export functionality** — Download available names or full history as text files
+- **Haptic feedback** — Impact and notification haptics on all interactions
+- **Toast notifications** — Lightweight toast popups for actions
+- **Smooth animations** — fadeIn, slideUp, bounce, and scale transitions
+- **Telegram theme** — Automatic dark/light mode from Telegram theme colors
+- **CloudStorage sync** — Settings persist via Telegram CloudStorage
+- **Rich result cards** — Available names get Open, Copy, and Claim buttons
+- **Progress tracking** — Real-time progress bar with speed indicator for batch/generate/pattern
+- **Smart sorting** — Available names sorted to top in batch results
+- **Concurrent checking** — 3 parallel requests with configurable delay
+
+#### ✨ Added — Bot Handler
+- **`batch_result` action** — Bot receives batch check summary with available names list
+- **`generate_result` action** — Bot receives generation results with mode and stats
+- **`pattern_result` action** — Bot receives pattern check results with template used
+- **`export` action** — Bot receives exported available names for forwarding
+- **Rich bot responses** — All webapp results render as formatted cards with inline keyboard buttons
+
+#### 🔧 Changed
+- **`webapp/index.html`** — Complete rewrite from single-checker to full mini-app
+- **`bot/handlers.py`** — `handle_webapp_data()` expanded to handle 5 action types
+
+---
+
 ## [3.1.0] — 2026-05-04
 
-### 🔍 Inline Query Mode, Web App & Compatibility Fixes
+### 🔍 Inline Query Mode & Compatibility Fixes
 
 #### ✨ Added
 - **Inline Query Mode** — Check usernames directly from any chat using `@botname username`
@@ -17,9 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Taken usernames show red X with suggestion to try `/generate`
   - Invalid usernames show validation rules
   - Error states handled gracefully with retry guidance
-- **Telegram Web App (Mini App) Integration** — Launch the bot as a Mini App inside Telegram
-  - Seamless in-app experience without leaving Telegram
-  - Full bot functionality accessible via Web App interface
 
 #### 🐛 Fixed
 - **`InlineQueryResultArticle` crash** — Replaced deprecated `thumb_url` with `thumbnail_url` for `python-telegram-bot` v20+ compatibility

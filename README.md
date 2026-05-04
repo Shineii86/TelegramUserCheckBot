@@ -1,12 +1,12 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v2.0&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v2.1&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
-[![Version](https://img.shields.io/badge/Version-2.0-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
+[![Version](https://img.shields.io/badge/Version-2.1-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
@@ -14,7 +14,7 @@
 
 **The ultimate Telegram username availability checker — CLI, Telegram Bot, or Google Colab.**
 
-*Mass-check usernames with multi-threading, proxy rotation, and instant Telegram alerts.*
+*Mass-check usernames with multi-threading, proxy rotation, pattern templates, and instant Telegram alerts.*
 
 </div>
 
@@ -30,6 +30,7 @@
   - [Google Colab](#-google-colab)
 - [📓 Colab Notebook Guide](#-colab-notebook-guide)
 - [🤖 Bot Commands](#-bot-commands)
+- [🧬 Generation Modes](#-generation-modes)
 - [📚 CLI Reference](#-cli-reference)
 - [⚙️ Configuration](#️-configuration)
 - [📁 Project Structure](#-project-structure)
@@ -76,13 +77,23 @@
 | 🔍 **Modes** | Single Check | Check one username via `/check` or CLI |
 | | Batch Check | Check multiple via `/batch` or `--wordlist` |
 | | Random Generation | Generate & check via `/generate` or CLI |
+| | Pattern Templates | Generate from patterns via `/pattern` |
+| | Word Combos | Adjective + noun + number names |
+| 🧬 **Generation** | Random | Pure random character usernames |
+| | Word Combos | `fastcoder42`, `coolhacker`, `wildwolf7` |
+| | Mixed | Round-robin across strategies for variety |
+| | Pattern Templates | `user_????`, `test_##`, `my_!_!_name` |
+| | Smart Dedup | Never checks the same username twice |
 | 🚀 **Performance** | Multi-threading | Configurable worker count (1–50) |
 | | Proxy Rotation | HTTP/HTTPS/SOCKS from file or URL |
 | | Smart Detection | Profile data analysis for accurate results |
 | | UA Rotation | Rotates across 6 browser fingerprints |
-| 📲 **Telegram** | Interactive Bot | Full inline keyboard UI with v2.0 redesign |
-| | Instant Alerts | Hit notifications with stats |
-| | Settings Panel | Change length, chars, delay in-chat |
+| | Retry Logic | Exponential backoff on rate limits (3 retries) |
+| | Auto Delay | Automatically increases delay when rate limited |
+| 📲 **Telegram** | Interactive Bot | Full inline keyboard UI |
+| | Rich Hit Alerts | Notifications with Open/Stop buttons |
+| | Progress Updates | Periodic stats every N checks |
+| | Settings Panel | Change length, chars, delay, gen mode in-chat |
 | | Quick Check | Just type a username — no command needed! |
 | | Check History | View recent checks with `/history` |
 | | Bot Status | Check uptime & responsiveness with `/ping` |
@@ -135,6 +146,12 @@ python main.py
 # With arguments
 python main.py --token TOKEN --chat-id CHAT_ID --mode hits --stop-after 5
 
+# With pattern template
+python main.py --token TOKEN --chat-id CHAT_ID --pattern "user_????" --mode hits
+
+# With word combo generation
+python main.py --token TOKEN --chat-id CHAT_ID --gen-mode word_combo
+
 # With config file
 python main.py --config config.json
 
@@ -182,12 +199,15 @@ A textarea widget lets you paste multiple usernames (one per line), then click t
 | Command | Description | Example |
 |---------|-------------|---------|
 | `/start` | Welcome screen with quick-action buttons | `/start` |
-| `/help` | Show all commands & username rules | `/help` |
+| `/help` | Show all commands, rules & pattern syntax | `/help` |
 | `/check username` | Check a single username | `/check coolname123` |
-| `/batch user1,user2,user3` | Check multiple (comma-separated) | `/batch abc,xyz,test` |
+| `/batch user1,user2,user3` | Check multiple (comma/space/newline) | `/batch abc,xyz,test` |
 | `/generate` | Generate & check 20 random usernames | `/generate` |
 | `/generate 50` | Generate & check N random usernames | `/generate 50` |
-| `/settings` | View/change length, chars, delay, workers | `/settings` |
+| `/generate 50 word_combo` | Generate with word combos | `/generate 50 word_combo` |
+| `/pattern template` | Generate from pattern template | `/pattern user_????` |
+| `/pattern tmpl 50` | Pattern with custom count | `/pattern test_## 50` |
+| `/settings` | View/change length, chars, delay, gen mode | `/settings` |
 | `/stats` | Show session statistics with hit rate | `/stats` |
 | `/history` | View recent check log with timestamps | `/history` |
 | `/ping` | Check bot uptime & responsiveness | `/ping` |
@@ -197,6 +217,45 @@ A textarea widget lets you paste multiple usernames (one per line), then click t
 **💡 Quick check:** Just type a username as a message (no command needed) — the bot checks it instantly.
 
 **🎮 Inline keyboard:** All commands have interactive button menus. Settings, stats, and results include action buttons for common workflows.
+
+---
+
+## 🧬 Generation Modes
+
+### 🎲 Random (default)
+Pure random characters from the configured character set.
+```
+a8kx2m, q3z9bp, w7fn1t
+```
+
+### 🧠 Word Combos
+Adjective + noun + optional number. Produces memorable, pronounceable names.
+```
+fastcoder42, coolhacker, wildwolf7, proninja, cyberdragon99
+```
+
+### 🌈 Mixed
+Round-robin across random and word combo strategies for maximum variety.
+
+### 🔮 Pattern Templates
+Generate from custom patterns using special characters:
+
+| Symbol | Meaning | Example |
+|--------|---------|---------|
+| `?` | Random letter (a-z) | `user_????` → `user_abcd` |
+| `#` | Random digit (0-9) | `test_##` → `test_42` |
+| `!` | Random letter or digit | `name_!_!` → `name_a3` |
+| `@` | Any valid char (a-z, 0-9, _) | `x@` → `x_k` |
+| `_` | Literal underscore | `my_name` → `my_name` |
+| Other | Literal character | `pro_v1` → `pro_v1` |
+
+**Examples:**
+```
+/pattern user_????        → user_abcd, user_wxyz, ...
+/pattern test_##_ab       → test_42_ab, test_07_ab, ...
+/pattern my_!_!_!_tag     → my_a3b_tag, my_x7y_tag, ...
+/pattern pro_####         → pro_1234, pro_5678, ...
+```
 
 ---
 
@@ -214,6 +273,8 @@ Username Generation:
   --chars               Character set
   --no-start-underscore Don't avoid starting with underscore
   --no-end-underscore   Don't avoid ending with underscore
+  --gen-mode            random | word_combo | mixed (default: random)
+  --pattern             Pattern template (?=letter #=digit !=alnum)
 
 Wordlist:
   --wordlist, -w        Path to wordlist file
@@ -251,12 +312,23 @@ Config:
   "telegram_chat_id": "987654321",
   "username_length": 5,
   "character_set": "abcdefghijklmnopqrstuvwxyz0123456789_",
+  "generation_mode": "random",
+  "use_pattern": false,
+  "pattern": "",
   "mode": "hits",
   "stop_after_hits": 10,
   "max_workers": 10,
   "delay": 1.0,
+  "max_retries": 3,
+  "retry_backoff_base": 2.0,
+  "auto_adjust_delay": true,
   "use_proxies": true,
-  "proxy_url": "https://example.com/proxies.txt"
+  "proxy_url": "https://example.com/proxies.txt",
+  "save_hits": true,
+  "output_file": "available_usernames.txt",
+  "notify_on_hit": true,
+  "notify_on_finish": true,
+  "notify_progress_interval": 50
 }
 ```
 
@@ -268,15 +340,24 @@ Config:
 | `TELEGRAM_CHAT_ID` | — | Your Telegram user ID |
 | `USERNAME_LENGTH` | 5 | Length of generated usernames |
 | `CHARACTER_SET` | `a-z0-9_` | Characters for random generation |
+| `GENERATION_MODE` | random | random, word_combo, or mixed |
+| `USE_PATTERN` | false | Enable pattern template mode |
+| `PATTERN` | — | Pattern template string |
 | `MODE` | continuous | continuous, count, or hits |
 | `MAX_ATTEMPTS` | 100 | Max checks for `count` mode |
 | `STOP_AFTER_HITS` | 10 | Stop after N hits for `hits` mode |
 | `MAX_WORKERS` | 10 | Thread count |
 | `DELAY` | 1.0 | Seconds between requests |
+| `MAX_RETRIES` | 3 | Retries per request on failure |
+| `RETRY_BACKOFF_BASE` | 2.0 | Base seconds for exponential backoff |
+| `AUTO_ADJUST_DELAY` | true | Auto-increase delay on rate limits |
 | `USE_PROXIES` | false | Enable proxy rotation |
 | `PROXY_FILE` / `PROXY_URL` | — | Proxy source |
 | `SAVE_HITS` | true | Save available names to file |
 | `OUTPUT_FILE` | available_usernames.txt | Output filename |
+| `NOTIFY_ON_HIT` | true | Send Telegram alert on available username |
+| `NOTIFY_ON_FINISH` | true | Send Telegram alert when check completes |
+| `NOTIFY_PROGRESS_INTERVAL` | 50 | Send progress update every N checks |
 
 ---
 
@@ -296,11 +377,11 @@ TelegramUserCheckBot/
 ├── checker/                 # 🔧 Core checking engine
 │   ├── __init__.py
 │   ├── config.py            # Configuration dataclass (env, JSON, CLI)
-│   ├── telegram_client.py   # Username availability checker (t.me scraping)
-│   ├── telegram_notifier.py # Telegram notification helper (for CLI mode)
-│   ├── generator.py         # Username generation + wordlist loading
+│   ├── telegram_client.py   # Username checker with retry & backoff
+│   ├── telegram_notifier.py # Rich Telegram notifications with buttons
+│   ├── generator.py         # Random, word combo, pattern, & mixed generation
 │   ├── proxy.py             # Proxy manager (HTTP/SOCKS rotation)
-│   └── core.py              # CLI orchestrator (threading, stats)
+│   └── core.py              # CLI orchestrator (threading, stats, banner)
 │
 ├── bot/                     # 🤖 Telegram bot interface
 │   ├── __init__.py
@@ -366,7 +447,8 @@ Telegram enforces strict username rules:
 - With default settings (10 workers, 1.0s delay): ~10 usernames/sec
 - With 50 workers and 0.5s delay: ~100 usernames/sec
 - Use proxies to avoid rate limits at higher speeds
-- Speed is now displayed in real-time during batch/generate operations
+- Speed is displayed in real-time during batch/generate operations
+- Auto-adjusts delay when rate limited (exponential backoff)
 </details>
 
 <details>
@@ -380,8 +462,29 @@ Telegram enforces strict username rules:
 
 Telegram has billions of users and bots. Short usernames (5–8 chars) are almost all registered. Try:
 - Longer names (10+ chars)
+- **Word combo mode:** `/generate 50 word_combo` — produces memorable names like `fastcoder42`
+- **Pattern templates:** `/pattern my_!_!_!_name` — structured names with variety
 - Mix of letters + numbers: `ab12cd34`
 - Underscore patterns: `my_name_123`
+</details>
+
+<details>
+<summary><b>What are pattern templates?</b></summary>
+
+Patterns let you generate usernames from a template. Use special characters as placeholders:
+- `?` = random letter, `#` = random digit, `!` = letter or digit
+- Example: `/pattern user_????` generates `user_abcd`, `user_wxyz`, etc.
+- Example: `/pattern pro_####` generates `pro_1234`, `pro_5678`, etc.
+- Any other character is used literally: `/pattern test_v1_??` → `test_v1_ab`
+</details>
+
+<details>
+<summary><b>What's the difference between generation modes?</b></summary>
+
+- **Random** — Pure random characters. Fast but names are hard to remember.
+- **Word Combos** — Adjective + noun + number. Produces pronounceable names like `coolhacker` or `wildwolf7`. Better for finding names people actually want.
+- **Mixed** — Combines both strategies for variety. Best for long hunting sessions.
+- Use `/settings` → Gen Mode to switch, or `--gen-mode word_combo` in CLI.
 </details>
 
 <details>
@@ -406,12 +509,18 @@ Telegram has billions of users and bots. Short usernames (5–8 chars) are almos
 </details>
 
 <details>
-<summary><b>What's new in v2.0?</b></summary>
+<summary><b>What's new in v2.1?</b></summary>
 
-- **New commands:** `/history`, `/ping`, `/about`
-- **Enhanced UI:** Better message formatting, time-aware greetings, speed tracking
-- **Smart interactions:** Retry on error, copy username button, export all hits
-- **Improved UX:** Batch size limits (200), elapsed time in results, session uptime
+- **Pattern templates:** `/pattern user_????` — generate from custom patterns
+- **Word combos:** `/generate 50 word_combo` — memorable names like `fastcoder42`
+- **Mixed generation:** Best of random + word combos
+- **Smart dedup:** Never checks the same username twice
+- **Retry logic:** Exponential backoff on rate limits (3 retries)
+- **Auto delay:** Automatically slows down when rate limited
+- **Rich notifications:** Hit alerts with Open/Stop buttons
+- **Progress updates:** Periodic stats during long runs
+- **Generation mode selector** in /settings
+- **Pattern quick templates** menu
 - See [CHANGELOG.md](CHANGELOG.md) for full details
 </details>
 

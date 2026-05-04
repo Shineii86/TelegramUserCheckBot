@@ -1,11 +1,12 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Checker&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v1.1&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v2.0&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
+[![Version](https://img.shields.io/badge/Version-2.0-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
@@ -75,21 +76,30 @@
 | 🔍 **Modes** | Single Check | Check one username via `/check` or CLI |
 | | Batch Check | Check multiple via `/batch` or `--wordlist` |
 | | Random Generation | Generate & check via `/generate` or CLI |
-| 🚀 **Performance** | Multi-threading | Configurable worker count (1-50) |
+| 🚀 **Performance** | Multi-threading | Configurable worker count (1–50) |
 | | Proxy Rotation | HTTP/HTTPS/SOCKS from file or URL |
 | | Smart Detection | Profile data analysis for accurate results |
 | | UA Rotation | Rotates across 6 browser fingerprints |
-| 📲 **Telegram** | Interactive Bot | Full inline keyboard UI |
+| 📲 **Telegram** | Interactive Bot | Full inline keyboard UI with v2.0 redesign |
 | | Instant Alerts | Hit notifications with stats |
 | | Settings Panel | Change length, chars, delay in-chat |
 | | Quick Check | Just type a username — no command needed! |
+| | Check History | View recent checks with `/history` |
+| | Bot Status | Check uptime & responsiveness with `/ping` |
+| | About Page | Bot info & credits via `/about` |
+| | Retry on Error | One-tap retry for failed checks |
+| | Copy to Clipboard | Quick-copy available usernames |
+| | Speed Tracking | Real-time checks/sec in batch & generate |
+| | Time-Aware Greeting | Welcome message adapts to time of day |
 | 📓 **Colab** | One-Click Bot | Launch Telegram bot directly from notebook |
 | | Textarea Input | Multi-line username input with Run button |
 | | Config Sliders | Sliders, dropdowns, and toggles for all settings |
 | 💾 **Output** | Auto-Save | Hits saved to file in real-time |
+| | Export Hits | Export all available names from any session |
 | 🛡️ **Safety** | Thread-Safe Stats | Locked counters, proper stop conditions |
-| | Validation | Telegram username rules enforced (5-32 chars) |
+| | Validation | Telegram username rules enforced (5–32 chars) |
 | | Rate Limit Detection | Counted separately, not silently skipped |
+| | Batch Limits | Max 200 per batch to prevent abuse |
 
 ---
 
@@ -171,19 +181,22 @@ A textarea widget lets you paste multiple usernames (one per line), then click t
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/start` | Welcome message with quick-action buttons | `/start` |
-| `/help` | Show all commands | `/help` |
+| `/start` | Welcome screen with quick-action buttons | `/start` |
+| `/help` | Show all commands & username rules | `/help` |
 | `/check username` | Check a single username | `/check coolname123` |
 | `/batch user1,user2,user3` | Check multiple (comma-separated) | `/batch abc,xyz,test` |
 | `/generate` | Generate & check 20 random usernames | `/generate` |
 | `/generate 50` | Generate & check N random usernames | `/generate 50` |
 | `/settings` | View/change length, chars, delay, workers | `/settings` |
-| `/stats` | Show session statistics | `/stats` |
+| `/stats` | Show session statistics with hit rate | `/stats` |
+| `/history` | View recent check log with timestamps | `/history` |
+| `/ping` | Check bot uptime & responsiveness | `/ping` |
+| `/about` | Bot info, version, and credits | `/about` |
 | `/stop` | Stop current batch/generation | `/stop` |
 
 **💡 Quick check:** Just type a username as a message (no command needed) — the bot checks it instantly.
 
-**🎮 Inline keyboard:** Settings, stats, and help all have interactive button menus.
+**🎮 Inline keyboard:** All commands have interactive button menus. Settings, stats, and results include action buttons for common workflows.
 
 ---
 
@@ -322,7 +335,7 @@ Telegram enforces strict username rules:
 
 | Rule | Valid | Invalid |
 |------|-------|---------|
-| Length: 5-32 chars | `hello` | `ab` (too short) |
+| Length: 5–32 chars | `hello` | `ab` (too short) |
 | Start with letter | `test123` | `1abc` (starts with number) |
 | a-z, 0-9, `_` only | `my_name` | `my-name` (hyphen) |
 | No double `__` | `my_name` | `my__name` (double underscore) |
@@ -353,6 +366,7 @@ Telegram enforces strict username rules:
 - With default settings (10 workers, 1.0s delay): ~10 usernames/sec
 - With 50 workers and 0.5s delay: ~100 usernames/sec
 - Use proxies to avoid rate limits at higher speeds
+- Speed is now displayed in real-time during batch/generate operations
 </details>
 
 <details>
@@ -364,7 +378,7 @@ Telegram enforces strict username rules:
 <details>
 <summary><b>Why are short random names mostly taken?</b></summary>
 
-Telegram has billions of users and bots. Short usernames (5-8 chars) are almost all registered. Try:
+Telegram has billions of users and bots. Short usernames (5–8 chars) are almost all registered. Try:
 - Longer names (10+ chars)
 - Mix of letters + numbers: `ab12cd34`
 - Underscore patterns: `my_name_123`
@@ -391,11 +405,21 @@ Telegram has billions of users and bots. Short usernames (5-8 chars) are almost 
 6. Keep the cell running while you use the bot
 </details>
 
+<details>
+<summary><b>What's new in v2.0?</b></summary>
+
+- **New commands:** `/history`, `/ping`, `/about`
+- **Enhanced UI:** Better message formatting, time-aware greetings, speed tracking
+- **Smart interactions:** Retry on error, copy username button, export all hits
+- **Improved UX:** Batch size limits (200), elapsed time in results, session uptime
+- See [CHANGELOG.md](CHANGELOG.md) for full details
+</details>
+
 ---
 
 ## 📄 License
 
-MIT License — see [LICENSE](/Shineii86/TelegramUserCheckBot/blob/main/LICENSE).
+MIT License — see [LICENSE](LICENSE).
 
 ---
 

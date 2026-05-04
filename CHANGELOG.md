@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] — 2026-05-04
+
+### 🎨 UI/UX Overhaul & New Commands
+
+#### ✨ Added — New Bot Commands
+- **`/history`** — View recent check log with status indicators and timestamps
+  - Shows last 15 checks with ✅/❌/🚫/⚠️/💥 status emojis
+  - Relative timestamps ("just now", "5m ago", "2h ago")
+  - Total checked & hits summary at bottom
+- **`/ping`** — Check bot responsiveness and uptime
+  - Shows uptime (formatted as Xm Xs / Xh Xm)
+  - Displays bot version and user's session stats
+  - "All systems operational!" status message
+- **`/about`** — Bot info, version, and credits
+  - Links to GitHub repo and star page
+  - Feature summary and author attribution
+
+#### ✨ Added — Enhanced UX Features
+- **Time-aware greeting** — `/start` adapts message based on time of day (Good morning/afternoon/evening/Hey)
+- **Speed tracking** — Real-time checks/sec displayed during batch and generate operations
+- **Elapsed time** — Total time shown in batch/generate completion reports
+- **Retry on error** — One-tap "🔄 Retry" button when a check fails
+- **Copy username** — "📋 Copy Name" button on available username results
+- **Export hits button** — Added to batch/generate completion screens (not just stats)
+- **Session uptime** — Displayed in `/ping` command
+- **History tracking** — All checks automatically logged with timestamps
+- **Batch size limit** — Max 200 usernames per batch with clear error message
+- **Status emoji helper** — Consistent emoji mapping across all status displays
+- **Uptime formatter** — Human-readable duration formatting (Xs, Xm Xs, Xh Xm)
+
+#### 🔧 Changed — Bot UI Improvements
+- **`/start` welcome screen** — Redesigned with "Quick Actions" section header
+  - Added `/ping` and `/history` to command list
+  - Uses `· · ·` thin divider for visual separation
+  - Lightning/shield/sparkle tagline: "Fast ⚡ Reliable 🛡️ Free ✨"
+- **`/help` command** — Added `/history`, `/ping`, `/about` entries with descriptions
+  - Added author credit line with heart emoji
+- **`/check` results** — Enhanced result cards
+  - Available: Added "Copy Name" button alongside "Check Another"
+  - Taken: Added "Try /generate" suggestion with Generate button
+  - Rate Limited: Added Settings button for proxy configuration
+  - Error: Added Retry button for one-tap re-check
+  - Checking animation: Shows "Scanning t.me/{username}" during check
+- **`/batch` improvements** — Enhanced progress display
+  - Real-time speed indicator (X.X/sec) during batch
+  - Elapsed time in completion report
+  - Export hits button on completion
+  - Generate button alongside Check Another
+  - Max 200 limit with clear error message
+  - Better input parsing (supports spaces and newlines as separators)
+- **`/generate` improvements** — Enhanced generation flow
+  - "Conjuring usernames..." placeholder text
+  - Real-time speed indicator during generation
+  - Elapsed time in completion report
+  - Export hits button on completion
+  - Generate More button preserved after completion
+- **`/stats` layout** — Restructured button grid
+  - Export Hits + History on top row
+  - Reset Stats + Back on bottom row
+- **`/settings` layout** — Added Back button alongside Reset All
+- **Quick check (plain text)** — Enhanced all result types
+  - Available: Session stats shown, Copy button added
+  - Taken: Suggestion to use /generate with Generate button
+  - Rate Limited: Settings button for proxy setup
+  - Error: Retry button for re-check
+  - Checking animation: Thin divider separator
+- **Callback handlers** — New handlers added
+  - `copy_{username}` — Shows username in code block for easy copying
+  - `retry_{username}` — Re-checks a username from error state
+  - `history` — Shows check history from inline button
+- **Button layouts** — Improved keyboard grids
+  - Start screen: 3 rows (Quick Check/Generate, Settings/Stats, History/Help)
+  - Help screen: Added /about reference
+  - Length selector: Added 15, 20, 25 options
+  - Chars selector: Shows star emoji on current selection
+  - All settings screens: Show current value in description
+- **Message formatting** — Consistent use of dividers
+  - THICK_DIVIDER (━) for section headers
+  - DIVIDER (─) for sub-sections
+  - THIN_DIVIDER (· · ·) for subtle separations
+
+#### 📝 Documentation
+- **README.md** — Updated to v2.0
+  - Added version badge
+  - New Features table entries (history, ping, about, retry, copy, speed tracking, etc.)
+  - New Bot Commands table entries (/history, /ping, /about)
+  - Updated "What's new in v2.0?" FAQ entry
+  - Updated batch limits note
+  - Updated speed FAQ with real-time display mention
+- **CHANGELOG.md** — Added v2.0.0 release notes
+
+---
+
 ## [1.1.0] — 2026-05-04
 
 ### 🚀 Colab, Detection & Stability Update
@@ -102,7 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-save hits to file
 
 #### 🛡️ Safety
-- Telegram username validation (5-32 chars, a-z/0-9/_, letter start, no double `__`)
+- Telegram username validation (5–32 chars, a-z/0-9/_, letter start, no double `__`)
 - Rate limit detection (counted separately, not silently skipped)
 - Graceful Ctrl+C handling
 - Thread-safe counters with locks

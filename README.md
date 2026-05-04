@@ -1,6 +1,6 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Checker&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v1.0&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Checker&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v1.1&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -24,6 +24,10 @@
 - [🧠 How It Works](#-how-it-works)
 - [✨ Features](#-features)
 - [🚀 Quick Start](#-quick-start)
+  - [Telegram Bot](#-telegram-bot)
+  - [CLI Tool](#-cli-tool)
+  - [Google Colab](#-google-colab)
+- [📓 Colab Notebook Guide](#-colab-notebook-guide)
 - [🤖 Bot Commands](#-bot-commands)
 - [📚 CLI Reference](#-cli-reference)
 - [⚙️ Configuration](#️-configuration)
@@ -79,6 +83,9 @@
 | | Instant Alerts | Hit notifications with stats |
 | | Settings Panel | Change length, chars, delay in-chat |
 | | Quick Check | Just type a username — no command needed! |
+| 📓 **Colab** | One-Click Bot | Launch Telegram bot directly from notebook |
+| | Textarea Input | Multi-line username input with Run button |
+| | Config Sliders | Sliders, dropdowns, and toggles for all settings |
 | 💾 **Output** | Auto-Save | Hits saved to file in real-time |
 | 🛡️ **Safety** | Thread-Safe Stats | Locked counters, proper stop conditions |
 | | Validation | Telegram username rules enforced (5-32 chars) |
@@ -127,7 +134,36 @@ python main.py --token TOKEN --chat-id CHAT_ID --wordlist usernames.txt
 
 ### 📓 Google Colab
 
-Click the **Open in Colab** badge at the top. Run the cells. Done.
+Click the **Open in Colab** badge at the top. No install needed — runs in your browser.
+
+---
+
+## 📓 Colab Notebook Guide
+
+The Colab notebook has **6 steps** — each one is a standalone cell:
+
+| Step | What It Does | Effort |
+|------|-------------|--------|
+| **📦 Step 1** | Install & clone repo | Click ▶️ |
+| **⚙️ Step 2** | Configure settings (sliders, dropdowns) | Fill in token |
+| **🚀 Step 3** | Run multi-threaded checker (CLI mode) | Click ▶️ |
+| **🤖 Step 3B** | Launch Telegram bot (interactive mode) | Paste token, click ▶️ |
+| **🧪 Step 4** | Quick single username check | Type name, click ▶️ |
+| **📋 Step 5** | Check multiple usernames (textarea) | Paste names, click Run |
+
+### Step 3B — Launch Telegram Bot
+
+The easiest way to run the bot — no terminal, no install:
+
+1. Get a token from [@BotFather](https://t.me/BotFather) → `/newbot`
+2. Paste it in the token field
+3. Click ▶️ to run the cell
+4. Open Telegram → find your bot → send `/start`
+5. **Keep the cell running** — stopping it kills the bot
+
+### Step 5 — Check Multiple Usernames
+
+A textarea widget lets you paste multiple usernames (one per line), then click the **🔍 Run Check** button to check them all.
 
 ---
 
@@ -240,6 +276,7 @@ TelegramUserCheckBot/
 ├── requirements.txt         # Python dependencies
 ├── config.example.json      # Sample configuration
 ├── README.md                # This file
+├── CHANGELOG.md             # Version history
 ├── LICENSE                  # MIT License
 ├── .gitignore               # Git ignore rules
 │
@@ -334,13 +371,24 @@ Telegram has billions of users and bots. Short usernames (5-8 chars) are almost 
 </details>
 
 <details>
-<summary><b>Can I use it without a Telegram bot?</b></summary>
+<summary><b>Can I use it without installing anything?</b></summary>
 
-Yes! Use CLI mode:
-```bash
-python main.py --token TOKEN --chat-id CHAT_ID --mode hits --stop-after 10
-```
-Or use the Google Colab notebook — no install needed.
+**Yes!** Use the Google Colab notebook — click the badge at the top. It has:
+- One-click setup
+- Config sliders
+- A Telegram bot launcher (Step 3B)
+- Multi-line username checker with textarea
+</details>
+
+<details>
+<summary><b>How do I run the bot from Colab?</b></summary>
+
+1. Open the notebook (badge at top)
+2. Run Step 1 (setup)
+3. Go to Step 3B — paste your bot token
+4. Click ▶️ — the bot starts!
+5. Open Telegram → find your bot → `/start`
+6. Keep the cell running while you use the bot
 </details>
 
 ---

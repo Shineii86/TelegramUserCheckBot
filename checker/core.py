@@ -165,6 +165,9 @@ class Checker:
         username_iter = self._username_source()
         max_workers = self.config.max_workers
 
+        # Timeout for as_completed must exceed per-request delay + network time
+        _wait_timeout = max(self.config.delay * 2, 5.0)
+
         try:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {}
@@ -184,8 +187,16 @@ class Checker:
                     if not futures:
                         break
 
-                    done = as_completed(futures, timeout=1.0)
-                    for future in done:
+                    try:
+                        done = as_completed(futures, timeout=_wait_timeout)
+                        completed = list(done)
+                    except TimeoutError:
+                        # Process whatever finished and continue
+                        completed = [f for f in futures if f.done()]
+
+                    for future in completed:
+                        if future not in futures:
+                            continue
                         username = futures.pop(future)
                         try:
                             status = future.result()

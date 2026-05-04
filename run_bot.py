@@ -9,6 +9,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import os
 import sys
 
@@ -27,6 +28,26 @@ BANNER = f"""
 """
 
 
+def _is_notebook() -> bool:
+    """Detect if running inside Jupyter/Colab notebook."""
+    try:
+        from IPython import get_ipython
+        shell = get_ipython().__class__.__name__
+        if shell == "ZMQInteractiveShell":
+            return True  # Jupyter
+        if shell == "Shell":
+            return True  # Colab (sometimes)
+    except (ImportError, NameError):
+        pass
+    # Also check for Colab's specific module
+    try:
+        import google.colab  # noqa: F401
+        return True
+    except ImportError:
+        pass
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="🤖 TelegramUserCheckBot — Telegram Bot")
     parser.add_argument("--token", "-t", help="Telegram Bot Token (from @BotFather)")
@@ -39,6 +60,22 @@ def main():
         sys.exit(1)
 
     print(BANNER)
+
+    if _is_notebook():
+        # In Jupyter/Colab, apply nest_asyncio to allow nested event loops
+        try:
+            import nest_asyncio
+            nest_asyncio.apply()
+        except ImportError:
+            # If nest_asyncio not available, try to install it
+            try:
+                import subprocess
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "nest_asyncio"])
+                import nest_asyncio
+                nest_asyncio.apply()
+            except Exception:
+                print("⚠️  Install nest_asyncio for notebook support: pip install nest_asyncio")
+
     run_bot(token)
 
 

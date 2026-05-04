@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Telegram Username Checker</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #ffffff);
+      --text: var(--tg-theme-text-color, #000000);
+      --hint: var(--tg-theme-hint-color, #999999);
+      --link: var(--tg-theme-link-color, #2481cc);
+      --btn: var(--tg-theme-button-color, #2481cc);
+      --btn-text: var(--tg-theme-button-text-color, #ffffff);
+      --secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+      --accent: #2481cc;
+      --success: #4caf50;
+      --danger: #f44336;
+      --warning: #ff9800;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 100px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: var(--hint);
+      margin-top: 4px;
+    }
+
+    .search-box {
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 16px 14px 44px;
+      font-size: 16px;
+      border: 2px solid var(--secondary-bg);
+      border-radius: var(--radius);
+      background: var(--secondary-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--btn);
+      box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.15);
+    }
+
+    .search-box input::placeholder {
+      color: var(--hint);
+    }
+
+    .search-box .prefix {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      color: var(--hint);
+      pointer-events: none;
+    }
+
+    .search-box .clear-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: var(--hint);
+      color: var(--bg);
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .search-box .clear-btn.visible { display: flex; }
+
+    .check-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--btn);
+      color: var(--btn-text);
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .check-btn:active { transform: scale(0.98); }
+    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .check-btn .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    .check-btn.loading .spinner { display: block; }
+    .check-btn.loading .btn-text { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-card {
+      margin-top: 16px;
+      padding: 20px;
+      border-radius: var(--radius);
+      background: var(--secondary-bg);
+      box-shadow: var(--shadow);
+      display: none;
+      animation: slideUp 0.3s ease;
+    }
+
+    .result-card.visible { display: block; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card .status-icon {
+      font-size: 40px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .result-card .status-text {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .result-card .username-display {
+      text-align: center;
+      font-size: 15px;
+      color: var(--hint);
+      margin-bottom: 16px;
+    }
+
+    .result-card .username-display code {
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .result-card .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .result-card .actions button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .result-card .actions button:active { opacity: 0.7; }
+
+    .btn-open {
+      background: var(--btn);
+      color: var(--btn-text);
+    }
+
+    .btn-send {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-copy {
+      background: var(--secondary-bg);
+      color: var(--text);
+      border: 1px solid var(--hint) !important;
+    }
+
+    .rules-card {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--secondary-bg);
+    }
+
+    .rules-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rules-card .rule {
+      font-size: 13px;
+      color: var(--hint);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rules-card .rule .icon { font-size: 14px; }
+
+    .history-section {
+      margin-top: 20px;
+    }
+
+    .history-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--secondary-bg);
+      font-size: 14px;
+      animation: slideUp 0.2s ease;
+    }
+
+    .history-item .name {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-weight: 500;
+    }
+
+    .history-item .badge {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .badge-available { background: rgba(76,175,80,0.15); color: var(--success); }
+    .badge-taken { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .badge-invalid { background: rgba(255,152,0,0.15); color: var(--warning); }
+    .badge-error { background: rgba(158,158,158,0.15); color: var(--hint); }
+
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      font-size: 12px;
+      color: var(--hint);
+    }
+
+    .footer a {
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    .validation-msg {
+      font-size: 13px;
+      color: var(--danger);
+      margin-top: 8px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .validation-msg.visible { display: flex; }
+
+    .tips {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(36,129,204,0.08), rgba(76,175,80,0.08));
+      border: 1px solid rgba(36,129,204,0.15);
+    }
+
+    .tips h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .tips p {
+      font-size: 12px;
+      color: var(--hint);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="icon">🔍</div>
+    <h1>Username Checker</h1>
+    <p>Check Telegram username availability</p>
+  </div>
+
+  <div class="search-box">
+    <span class="prefix">@</span>
+    <input type="text" id="usernameInput" placeholder="Enter username..." autocomplete="off" autocorrect="off" spellcheck="false" maxlength="32">
+    <button class="clear-btn" id="clearBtn" onclick="clearInput()">✕</button>
+  </div>
+
+  <div class="validation-msg" id="validationMsg">
+    <span>⚠️</span>
+    <span id="validationText"></span>
+  </div>
+
+  <button class="check-btn" id="checkBtn" onclick="checkUsername()">
+    <div class="spinner"></div>
+    <span class="btn-text">🔍 Check Availability</span>
+  </button>
+
+  <div class="result-card" id="resultCard">
+    <div class="status-icon" id="statusIcon"></div>
+    <div class="status-text" id="statusText"></div>
+    <div class="username-display" id="usernameDisplay"></div>
+    <div class="actions" id="resultActions"></div>
+  </div>
+
+  <div class="tips">
+    <h4>💡 Tips</h4>
+    <p>Short names (5-6 chars) are almost all taken. Try 7+ characters with mixed letters and numbers for better results. Use the bot's /generate command to find available names automatically!</p>
+  </div>
+
+  <div class="rules-card">
+    <h3>📌 Username Rules</h3>
+    <div class="rule"><span class="icon">✅</span> 5–32 characters</div>
+    <div class="rule"><span class="icon">✅</span> a-z, 0-9, underscores only</div>
+    <div class="rule"><span class="icon">✅</span> Must start with a letter</div>
+    <div class="rule"><span class="icon">❌</span> No double underscores (__)</div>
+    <div class="rule"><span class="icon">❌</span> Can't end with underscore</div>
+  </div>
+
+  <div class="history-section" id="historySection" style="display:none">
+    <h3>📜 Recent Checks</h3>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <div class="footer">
+    Made with ❤️ by <a href="https://github.com/Shineii86">Shineii86</a>
+  </div>
+
+  <script>
+    // ── Telegram WebApp Init ──
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.setHeaderColor('secondary_bg_color');
+      tg.setBackgroundColor('bg_color');
+    }
+
+    // ── State ──
+    const VALID_CHARS = /^[a-z][a-z0-9_]{4,31}$/;
+    const DOUBLE_UNDER = /__/;
+    const history = JSON.parse(localStorage.getItem('check_history') || '[]');
+
+    const input = document.getElementById('usernameInput');
+    const checkBtn = document.getElementById('checkBtn');
+    const resultCard = document.getElementById('resultCard');
+    const validationMsg = document.getElementById('validationMsg');
+    const validationText = document.getElementById('validationText');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // ── Input Handling ──
+    input.addEventListener('input', () => {
+      const val = input.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+      input.value = val;
+      clearBtn.classList.toggle('visible', val.length > 0);
+      hideValidation();
+      hideResult();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkUsername();
+    });
+
+    function clearInput() {
+      input.value = '';
+      clearBtn.classList.remove('visible');
+      hideValidation();
+      hideResult();
+      input.focus();
+    }
+
+    function hideValidation() {
+      validationMsg.classList.remove('visible');
+    }
+
+    function showValidation(msg) {
+      validationText.textContent = msg;
+      validationMsg.classList.add('visible');
+    }
+
+    function hideResult() {
+      resultCard.classList.remove('visible');
+    }
+
+    // ── Username Validation ──
+    function validate(username) {
+      if (!username) return 'Enter a username';
+      if (username.length < 5) return 'Too short (min 5 characters)';
+      if (username.length > 32) return 'Too long (max 32 characters)';
+      if (!/^[a-z]/.test(username)) return 'Must start with a letter';
+      if (!/^[a-z0-9_]+$/.test(username)) return 'Only a-z, 0-9, and _ allowed';
+      if (DOUBLE_UNDER.test(username)) return 'No double underscores (__)';
+      if (username.endsWith('_')) return "Can't end with underscore";
+      return null;
+    }
+
+    // ── Check Username ──
+    async function checkUsername() {
+      const raw = input.value.trim().toLowerCase();
+      const error = validate(raw);
+
+      if (error) {
+        showValidation(error);
+        return;
+      }
+
+      hideValidation();
+      checkBtn.classList.add('loading');
+      checkBtn.disabled = true;
+      hideResult();
+
+      try {
+        const status = await checkAvailability(raw);
+        showResult(raw, status);
+        addToHistory(raw, status);
+
+        // Send result back to bot if in WebApp context
+        if (tg?.initDataUnsafe?.user) {
+          tg.sendData(JSON.stringify({
+            action: 'check',
+            username: raw,
+            status: status,
+            timestamp: Date.now()
+          }));
+        }
+      } catch (err) {
+        showResult(raw, 'error');
+      } finally {
+        checkBtn.classList.remove('loading');
+        checkBtn.disabled = false;
+      }
+    }
+
+    // ── Check Availability via t.me scraping ──
+    async function checkAvailability(username) {
+      try {
+        // Use a CORS proxy to fetch t.me page
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://t.me/' + username)}`;
+        const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+
+        if (resp.status === 404) return 'available';
+        if (!resp.ok) return 'error';
+
+        const html = await resp.text();
+
+        // Detection logic (same as checker/telegram_client.py)
+        const hasPhoto = /tgme_page_photo_image/i.test(html);
+        const nameMatch = html.match(/tgme_page_title[^>]*>(.*?)<\/div>/is);
+        const hasName = nameMatch && nameMatch[1].replace(/<[^>]+>/g, '').trim();
+        const subsMatch = html.match(/tgme_page_extra[^>]*>(.*?)<\/div>/is);
+        const hasSubs = subsMatch && (/subscribers/i.test(subsMatch[1]) || /members/i.test(subsMatch[1]));
+        const descMatch = html.match(/tgme_page_description[^>]*dir="auto">(.*?)<\/div>/is);
+        const hasBio = descMatch && descMatch[1].replace(/<[^>]+>/g, '').trim() &&
+          !descMatch[1].toLowerCase().includes(`you can contact @${username} right away`);
+
+        if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
+        return 'available';
+      } catch (e) {
+        if (e.name === 'TimeoutError') return 'error';
+        return 'error';
+      }
+    }
+
+    // ── Show Result ──
+    function showResult(username, status) {
+      const iconEl = document.getElementById('statusIcon');
+      const textEl = document.getElementById('statusText');
+      const displayEl = document.getElementById('usernameDisplay');
+      const actionsEl = document.getElementById('resultActions');
+
+      const configs = {
+        available: {
+          icon: '🎉',
+          text: 'AVAILABLE!',
+          color: 'var(--success)',
+          display: `@${username} is available`
+        },
+        taken: {
+          icon: '❌',
+          text: 'Taken',
+          color: 'var(--danger)',
+          display: `@${username} is already registered`
+        },
+        invalid: {
+          icon: '🚫',
+          text: 'Invalid',
+          color: 'var(--warning)',
+          display: `@${username} is not valid`
+        },
+        error: {
+          icon: '⚠️',
+          text: 'Error',
+          color: 'var(--hint)',
+          display: 'Could not check — try again'
+        }
+      };
+
+      const cfg = configs[status] || configs.error;
+      iconEl.textContent = cfg.icon;
+      textEl.textContent = cfg.text;
+      textEl.style.color = cfg.color;
+      displayEl.innerHTML = `<code>@${username}</code>`;
+
+      // Build action buttons
+      let buttons = '';
+      if (status === 'available') {
+        buttons += `<button class="btn-open" onclick="window.open('https://t.me/${username}','_blank')">📱 Open</button>`;
+        buttons += `<button class="btn-copy" onclick="copyUsername('${username}')">📋 Copy</button>`;
+      } else if (status === 'taken') {
+        buttons += `<button class="btn-open" onclick="window.open('https://t.me/${username}','_blank')">📱 View Profile</button>`;
+      }
+      actionsEl.innerHTML = buttons;
+
+      resultCard.classList.add('visible');
+
+      // Haptic feedback
+      if (tg?.HapticFeedback) {
+        if (status === 'available') tg.HapticFeedback.notificationOccurred('success');
+        else if (status === 'taken') tg.HapticFeedback.notificationOccurred('error');
+        else tg.HapticFeedback.notificationOccurred('warning');
+      }
+    }
+
+    // ── Copy Username ──
+    function copyUsername(username) {
+      const text = `@${username}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+      // Brief visual feedback
+      const btn = event.target;
+      const orig = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = orig, 1500);
+    }
+
+    // ── History ──
+    function addToHistory(username, status) {
+      history.unshift({ username, status, time: Date.now() });
+      if (history.length > 20) history.pop();
+      localStorage.setItem('check_history', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const section = document.getElementById('historySection');
+      const list = document.getElementById('historyList');
+
+      if (history.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      list.innerHTML = history.slice(0, 10).map(h => {
+        const badgeClass = `badge-${h.status}`;
+        const statusLabel = { available: 'Available', taken: 'Taken', invalid: 'Invalid', error: 'Error' }[h.status] || 'Error';
+        const timeAgo = getTimeAgo(h.time);
+        return `<div class="history-item">
+          <span class="name">@${h.username}</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--hint)">${timeAgo}</span>
+            <span class="badge ${badgeClass}">${statusLabel}</span>
+          </span>
+        </div>`;
+      }).join('');
+    }
+
+    function getTimeAgo(ts) {
+      const sec = Math.floor((Date.now() - ts) / 1000);
+      if (sec < 60) return 'now';
+      if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+      if (sec < 86400) return `${Math.floor(sec / 3600)}h`;
+      return `${Math.floor(sec / 86400)}d`;
+    }
+
+    // ── Init ──
+    renderHistory();
+    input.focus();
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent, WebAppInfo, MenuButtonWebApp
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -37,6 +37,7 @@ THICK_DIVIDER = "━━━━━━━━━━━━━━━━━━━━━
 THIN_DIVIDER = "· · · · · · · · · · · · · ·"
 BOT_USERNAME = "TelegramUserCheckBot"
 BOT_AUTHOR = "@Shineii86"
+WEBAPP_URL = "https://your-domain.com"  # ← Set your hosted webapp URL
 MAX_HISTORY = 20
 START_TIME = time.time()
 
@@ -222,10 +223,11 @@ def render_start(user) -> tuple[str, InlineKeyboardMarkup]:
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton(f"{E['check']} Quick Check", switch_inline_query_current_chat=""),
          InlineKeyboardButton(f"{E['magic']} Generate", callback_data="qg")],
-        [InlineKeyboardButton(f"{E['settings']} Settings", callback_data="s"),
-         InlineKeyboardButton(f"{E['stats']} Stats", callback_data="st")],
-        [InlineKeyboardButton(f"{E['history']} History", callback_data="hi"),
-         InlineKeyboardButton(f"{E['bulb']} Help", callback_data="hp")],
+        [InlineKeyboardButton(f"🌐 Open Checker", web_app=WebAppInfo(url=WEBAPP_URL)),
+         InlineKeyboardButton(f"{E['settings']} Settings", callback_data="s")],
+        [InlineKeyboardButton(f"{E['stats']} Stats", callback_data="st"),
+         InlineKeyboardButton(f"{E['history']} History", callback_data="hi")],
+        [InlineKeyboardButton(f"{E['bulb']} Help", callback_data="hp")],
     ])
     return text, kb
 
@@ -939,6 +941,38 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await query.answer("Nothing running.")
 
 
+
+# ============================================================================
+# WEB APP DATA HANDLER
+# ============================================================================
+
+async def handle_webapp_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle data sent from the Telegram Web App."""
+    try:
+        import json
+        data = json.loads(update.message.web_app_data.data)
+    except (ValueError, TypeError):
+        await update.message.reply_text(
+            f"{E['error']} Invalid data from web app.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    action = data.get("action")
+    if action == "check":
+        username = data.get("username", "").strip().lower()
+        status = data.get("status", "error")
+        session = get_session(update.effective_user.id)
+        session.record(status, username)
+        text, kb = _render_check_result(username, status, session)
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+    else:
+        await update.message.reply_text(
+            f"{E['bulb']} Web app data received.",
+            parse_mode=ParseMode.HTML,
+        )
+
+
 # ============================================================================
 # MESSAGE HANDLER — quick check by typing a username
 # ============================================================================
@@ -1111,7 +1145,19 @@ def run_bot(token: str):
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(InlineQueryHandler(handle_inline_query))
     app.add_handler(ChosenInlineResultHandler(handle_chosen_inline))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Set menu button to open web app (if URL configured)
+    async def post_init(app):
+        if WEBAPP_URL and WEBAPP_URL != "https://your-domain.com":
+            try:
+                await app.bot.set_chat_menu_button(
+                    menu_button=MenuButtonWebApp(text="🔍 Checker", web_app=WebAppInfo(url=WEBAPP_URL))
+                )
+            except Exception:
+                pass
+    app.post_init = post_init
 
     print(f"🤖 {BOT_USERNAME} v{VERSION} is running...")
     print("Press Ctrl+C to stop.")

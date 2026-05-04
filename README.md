@@ -2,42 +2,67 @@
 
 ![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Checker&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v1.0&descSize=20)
 
-[![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
+[![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
+[![GitHub Issues](https://img.shields.io/github/issues/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/issues)
+
+**The ultimate Telegram username availability checker — CLI, Telegram Bot, or Google Colab.**
+
+*Mass-check usernames with multi-threading, proxy rotation, and instant Telegram alerts.*
 
 </div>
 
-Check Telegram username availability at scale. CLI tool, Telegram bot, or Google Colab — your choice.
+---
 
 ## 📖 Table of Contents
 
-- [Overview](#-overview)
+- [🧠 How It Works](#-how-it-works)
 - [✨ Features](#-features)
 - [🚀 Quick Start](#-quick-start)
-  - [Telegram Bot](#telegram-bot)
-  - [CLI Tool](#cli-tool)
-  - [Google Colab](#google-colab)
 - [🤖 Bot Commands](#-bot-commands)
 - [📚 CLI Reference](#-cli-reference)
-- [⚙️ Configuration](#%EF%B8%8F-configuration)
+- [⚙️ Configuration](#️-configuration)
 - [📁 Project Structure](#-project-structure)
 - [🌐 Proxy Support](#-proxy-support)
-- [FAQ](#-faq)
-- [License](#-license)
+- [📌 Username Rules](#-username-rules)
+- [❓ FAQ](#-faq)
+- [📄 License](#-license)
 
-## 📋 Overview
+---
 
-TelegramUserCheckBot checks Telegram username availability at scale. Three ways to use it:
+## 🧠 How It Works
 
-| Mode | Best For | Run It |
-|------|----------|--------|
-| 🤖 **Telegram Bot** | Personal use, phone alerts, interactive | `python run_bot.py` |
-| 💻 **CLI Tool** | Automation, scripts, batch jobs | `python main.py` |
-| 📓 **Google Colab** | Quick start, no install | [Open notebook](#google-colab) |
+```
+┌─────────────────┐     ┌──────────────┐     ┌───────────────┐
+│  Generate / Load │────▶│  Check t.me  │────▶│  Parse Result │
+│   Usernames      │     │   Pages      │     │  (HTML)       │
+└─────────────────┘     └──────────────┘     └───────┬───────┘
+                                                      │
+                              ┌────────────────────────┼────────────────┐
+                              ▼                        ▼                ▼
+                        ┌──────────┐            ┌──────────┐      ┌──────────┐
+                        │ ✅ Available│          │ ❌ Taken  │      │ ⚠️ Error  │
+                        └──────────┘            └──────────┘      └──────────┘
+```
+
+**Detection method:** Scrapes `t.me/{username}` pages and analyzes profile data:
+
+| Indicator | Found? | Result |
+|-----------|--------|--------|
+| 📸 Profile photo | Yes | **Taken** |
+| 👤 Display name | Yes | **Taken** |
+| 📊 Subscriber count | Yes | **Taken** (channel/group) |
+| 📝 Bio/description | Yes | **Taken** |
+| 🚫 No profile data | Yes | **Available** ✅ |
+
+> **No API keys needed** for checking — only the Bot Token is needed for the interactive bot & notifications.
+
+---
 
 ## ✨ Features
 
@@ -46,9 +71,9 @@ TelegramUserCheckBot checks Telegram username availability at scale. Three ways 
 | 🔍 **Modes** | Single Check | Check one username via `/check` or CLI |
 | | Batch Check | Check multiple via `/batch` or `--wordlist` |
 | | Random Generation | Generate & check via `/generate` or CLI |
-| 🚀 **Performance** | Multi-threading | Configurable worker count |
+| 🚀 **Performance** | Multi-threading | Configurable worker count (1-50) |
 | | Proxy Rotation | HTTP/HTTPS/SOCKS from file or URL |
-| | Smart Detection | HTML parsing for accurate results |
+| | Smart Detection | Profile data analysis for accurate results |
 | | UA Rotation | Rotates across 6 browser fingerprints |
 | 📲 **Telegram** | Interactive Bot | Full inline keyboard UI |
 | | Instant Alerts | Hit notifications with stats |
@@ -56,12 +81,14 @@ TelegramUserCheckBot checks Telegram username availability at scale. Three ways 
 | | Quick Check | Just type a username — no command needed! |
 | 💾 **Output** | Auto-Save | Hits saved to file in real-time |
 | 🛡️ **Safety** | Thread-Safe Stats | Locked counters, proper stop conditions |
-| | Validation | Telegram username rules enforced |
+| | Validation | Telegram username rules enforced (5-32 chars) |
 | | Rate Limit Detection | Counted separately, not silently skipped |
+
+---
 
 ## 🚀 Quick Start
 
-### Telegram Bot
+### 🤖 Telegram Bot
 
 ```bash
 # Clone & install
@@ -82,7 +109,7 @@ python run_bot.py
 
 Then open your bot in Telegram and send `/start`.
 
-### CLI Tool
+### 💻 CLI Tool
 
 ```bash
 # Interactive (prompts for token/chat-id)
@@ -98,27 +125,31 @@ python main.py --config config.json
 python main.py --token TOKEN --chat-id CHAT_ID --wordlist usernames.txt
 ```
 
-### Google Colab
+### 📓 Google Colab
 
-Click the **Open in Colab** badge at the top. Run both cells. Done.
+Click the **Open in Colab** badge at the top. Run the cells. Done.
+
+---
 
 ## 🤖 Bot Commands
 
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message with quick-action buttons |
-| `/help` | Show all commands |
-| `/check username` | Check a single username |
-| `/batch user1,user2,user3` | Check multiple (comma-separated) |
-| `/generate` | Generate & check 20 random usernames |
-| `/generate 50` | Generate & check N random usernames |
-| `/settings` | View/change length, chars, delay, workers |
-| `/stats` | Show session statistics |
-| `/stop` | Stop current batch/generation |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/start` | Welcome message with quick-action buttons | `/start` |
+| `/help` | Show all commands | `/help` |
+| `/check username` | Check a single username | `/check coolname123` |
+| `/batch user1,user2,user3` | Check multiple (comma-separated) | `/batch abc,xyz,test` |
+| `/generate` | Generate & check 20 random usernames | `/generate` |
+| `/generate 50` | Generate & check N random usernames | `/generate 50` |
+| `/settings` | View/change length, chars, delay, workers | `/settings` |
+| `/stats` | Show session statistics | `/stats` |
+| `/stop` | Stop current batch/generation | `/stop` |
 
-**Quick check:** Just type a username as a message (no command needed) — the bot checks it instantly.
+**💡 Quick check:** Just type a username as a message (no command needed) — the bot checks it instantly.
 
-**Inline keyboard:** Settings, stats, and help all have interactive button menus.
+**🎮 Inline keyboard:** Settings, stats, and help all have interactive button menus.
+
+---
 
 ## 📚 CLI Reference
 
@@ -126,38 +157,40 @@ Click the **Open in Colab** badge at the top. Run both cells. Done.
 usage: python main.py [options]
 
 Telegram:
-  --token, -t          Telegram Bot Token
-  --chat-id, -c        Telegram Chat ID
+  --token, -t           Telegram Bot Token
+  --chat-id, -c         Telegram Chat ID
 
 Username Generation:
-  --length, -l         Username length (default: 5, min: 5, max: 32)
-  --chars              Character set
+  --length, -l          Username length (default: 5, min: 5, max: 32)
+  --chars               Character set
   --no-start-underscore Don't avoid starting with underscore
-  --no-end-underscore  Don't avoid ending with underscore
+  --no-end-underscore   Don't avoid ending with underscore
 
 Wordlist:
-  --wordlist, -w       Path to wordlist file
-  --wordlist-url       URL to wordlist
+  --wordlist, -w        Path to wordlist file
+  --wordlist-url        URL to wordlist
 
 Run Mode:
-  --mode, -m           continuous | count | hits (default: continuous)
-  --max-attempts       Max checks for 'count' mode (default: 100)
-  --stop-after         Stop after N hits for 'hits' mode (default: 10)
+  --mode, -m            continuous | count | hits (default: continuous)
+  --max-attempts        Max checks for 'count' mode (default: 100)
+  --stop-after          Stop after N hits for 'hits' mode (default: 10)
 
 Performance:
-  --workers, -W        Thread count (default: 10)
-  --delay, -d          Delay between requests in seconds (default: 1.0)
-  --proxy-file         Path to proxy list file
-  --proxy-url          URL to proxy list
+  --workers, -W         Thread count (default: 10)
+  --delay, -d           Delay between requests in seconds (default: 1.0)
+  --proxy-file          Path to proxy list file
+  --proxy-url           URL to proxy list
 
 Output:
-  --output, -o         Output file (default: available_usernames.txt)
-  --no-save            Don't save hits to file
+  --output, -o          Output file (default: available_usernames.txt)
+  --no-save             Don't save hits to file
 
 Config:
-  --config             Path to JSON config file
-  --env                Load from environment variables only
+  --config              Path to JSON config file
+  --env                 Load from environment variables only
 ```
+
+---
 
 ## ⚙️ Configuration
 
@@ -185,11 +218,18 @@ Config:
 | `TELEGRAM_BOT_TOKEN` | — | Bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | — | Your Telegram user ID |
 | `USERNAME_LENGTH` | 5 | Length of generated usernames |
+| `CHARACTER_SET` | `a-z0-9_` | Characters for random generation |
 | `MODE` | continuous | continuous, count, or hits |
+| `MAX_ATTEMPTS` | 100 | Max checks for `count` mode |
+| `STOP_AFTER_HITS` | 10 | Stop after N hits for `hits` mode |
 | `MAX_WORKERS` | 10 | Thread count |
 | `DELAY` | 1.0 | Seconds between requests |
 | `USE_PROXIES` | false | Enable proxy rotation |
 | `PROXY_FILE` / `PROXY_URL` | — | Proxy source |
+| `SAVE_HITS` | true | Save available names to file |
+| `OUTPUT_FILE` | available_usernames.txt | Output filename |
+
+---
 
 ## 📁 Project Structure
 
@@ -197,23 +237,30 @@ Config:
 TelegramUserCheckBot/
 ├── main.py                  # CLI entry point
 ├── run_bot.py               # Telegram bot entry point
-├── requirements.txt
-├── README.md
-├── LICENSE
-├── checker/                 # Core checking engine
+├── requirements.txt         # Python dependencies
+├── config.example.json      # Sample configuration
+├── README.md                # This file
+├── LICENSE                  # MIT License
+├── .gitignore               # Git ignore rules
+│
+├── checker/                 # 🔧 Core checking engine
 │   ├── __init__.py
-│   ├── config.py            # Configuration dataclass
+│   ├── config.py            # Configuration dataclass (env, JSON, CLI)
 │   ├── telegram_client.py   # Username availability checker (t.me scraping)
 │   ├── telegram_notifier.py # Telegram notification helper (for CLI mode)
 │   ├── generator.py         # Username generation + wordlist loading
-│   ├── proxy.py             # Proxy manager
+│   ├── proxy.py             # Proxy manager (HTTP/SOCKS rotation)
 │   └── core.py              # CLI orchestrator (threading, stats)
-├── bot/                     # Telegram bot interface
+│
+├── bot/                     # 🤖 Telegram bot interface
 │   ├── __init__.py
 │   └── handlers.py          # All /commands, callbacks, settings UI
-└── notebooks/
-    └── TelegramUserCheckBot.ipynb  # Colab notebook
+│
+└── notebooks/               # 📓 Google Colab
+    └── TelegramUserCheckBot.ipynb
 ```
+
+---
 
 ## 🌐 Proxy Support
 
@@ -230,32 +277,73 @@ socks5://host:port
 
 ⚠️ Free proxies are unreliable. Use private/residential proxies for serious hunting.
 
+---
+
+## 📌 Username Rules
+
+Telegram enforces strict username rules:
+
+| Rule | Valid | Invalid |
+|------|-------|---------|
+| Length: 5-32 chars | `hello` | `ab` (too short) |
+| Start with letter | `test123` | `1abc` (starts with number) |
+| a-z, 0-9, `_` only | `my_name` | `my-name` (hyphen) |
+| No double `__` | `my_name` | `my__name` (double underscore) |
+| Can't end with `_` | `my_name` | `my_name_` (trailing underscore) |
+
+---
+
 ## ❓ FAQ
 
-**How do I get a bot token?**
-- Message [@BotFather](https://t.me/BotFather) on Telegram
-- Send `/newbot`, choose a name and username
-- Copy the token — that's your `TELEGRAM_BOT_TOKEN`
+<details>
+<summary><b>How do I get a bot token?</b></summary>
 
-**How do I get my chat ID?**
-- Message [@userinfobot](https://t.me/userinfobot) on Telegram
-- It replies with your ID — that's your `TELEGRAM_CHAT_ID`
+1. Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Send `/newbot`, choose a name and username
+3. Copy the token — that's your `TELEGRAM_BOT_TOKEN`
+</details>
 
-**What are Telegram's username rules?**
-- 5-32 characters
-- a-z, 0-9, and underscores only
-- Must start with a letter
-- No double underscores (`__`)
-- Can't end with underscore
+<details>
+<summary><b>How do I get my chat ID?</b></summary>
 
-**How fast is it?**
-- Depends on delay and rate limits
-- With default settings (10 workers, 1s delay): ~10 usernames/sec
-- Use proxies for higher throughput
+1. Message [@userinfobot](https://t.me/userinfobot) on Telegram
+2. It replies with your ID — that's your `TELEGRAM_CHAT_ID`
+</details>
 
-**Does it need API credentials?**
-- No! It checks via `t.me` page scraping — no Telegram API keys needed
-- Only the bot token is needed for the interactive bot & notifications
+<details>
+<summary><b>How fast is it?</b></summary>
+
+- With default settings (10 workers, 1.0s delay): ~10 usernames/sec
+- With 50 workers and 0.5s delay: ~100 usernames/sec
+- Use proxies to avoid rate limits at higher speeds
+</details>
+
+<details>
+<summary><b>Does it need Telegram API credentials?</b></summary>
+
+**No!** It checks via `t.me` page scraping — no Telegram API keys needed. Only the bot token is needed for the interactive bot & notifications.
+</details>
+
+<details>
+<summary><b>Why are short random names mostly taken?</b></summary>
+
+Telegram has billions of users and bots. Short usernames (5-8 chars) are almost all registered. Try:
+- Longer names (10+ chars)
+- Mix of letters + numbers: `ab12cd34`
+- Underscore patterns: `my_name_123`
+</details>
+
+<details>
+<summary><b>Can I use it without a Telegram bot?</b></summary>
+
+Yes! Use CLI mode:
+```bash
+python main.py --token TOKEN --chat-id CHAT_ID --mode hits --stop-after 10
+```
+Or use the Google Colab notebook — no install needed.
+</details>
+
+---
 
 ## 📄 License
 
@@ -263,10 +351,16 @@ MIT License — see [LICENSE](/Shineii86/TelegramUserCheckBot/blob/main/LICENSE)
 
 ---
 
-⚠️ **Disclaimer:** Educational and personal use only. Automated checks may be rate-limited by Telegram. Use responsibly and at your own risk.
+## ⚠️ Disclaimer
+
+Educational and personal use only. Automated checks may be rate-limited by Telegram. Use responsibly and at your own risk.
+
+---
 
 <div align="center">
 
 **Made with ❤️ by [@Shineii86](https://github.com/Shineii86)**
+
+⭐ Star this repo if it helped you find a great username!
 
 </div>

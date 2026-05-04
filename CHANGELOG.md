@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] — 2026-05-04
+
+### 🐛 Colab/Jupyter Event Loop Fix
+
+#### 🐛 Fixed
+- **`Cannot close a running event loop`** — Fixed for Jupyter/Colab notebooks
+  - `nest_asyncio.apply()` now called inside `run_bot()` before `run_polling()`
+  - Auto-detects notebook environment and applies patch automatically
+  - Auto-installs `nest_asyncio` if missing in notebook environments
+- **run_bot.py** — Added `_is_notebook()` detection for Jupyter/Colab
+- **Notebook Cell 9** — Updated bot launcher with `nest_asyncio` fix
+
+#### 🔧 Changed
+- **`bot/handlers.py`** — `run_bot()` now detects notebook environment
+  - CLI: Uses standard `run_polling()` (blocking)
+  - Notebook: Applies `nest_asyncio` then `run_polling()`
+- **`run_bot.py`** — Imports `asyncio`, detects notebook shell
+
+---
+
 ## [2.1.0] — 2026-05-04
 
 ### 🧬 Generation Engine, Retry Logic & Rich Notifications

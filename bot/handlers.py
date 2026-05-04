@@ -1036,7 +1036,7 @@ async def handle_inline_query(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         parse_mode=ParseMode.HTML,
                         disable_web_page_preview=True,
                     ),
-                    thumb_url="https://img.icons8.com/color/48/checkmark.png",
+                    thumbnail_url="https://img.icons8.com/color/48/checkmark.png",
                 )
             )
         elif status == TAKEN:
@@ -1050,7 +1050,7 @@ async def handle_inline_query(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         f"{E['bulb']} <i>Try /generate to find available names!</i>",
                         parse_mode=ParseMode.HTML,
                     ),
-                    thumb_url="https://img.icons8.com/color/48/cancel.png",
+                    thumbnail_url="https://img.icons8.com/color/48/cancel.png",
                 )
             )
         elif status == INVALID:

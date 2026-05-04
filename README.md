@@ -1,12 +1,12 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.0&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.1&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
-[![Version](https://img.shields.io/badge/Version-3.0-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
+[![Version](https://img.shields.io/badge/Version-3.1-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
@@ -94,6 +94,7 @@
 | | Rich Hit Alerts | Notifications with Open/Stop buttons |
 | | Progress Updates | Periodic stats every N checks |
 | | Settings Panel | Change length, chars, delay, gen mode in-chat |
+| | Inline Query | Check from any chat with `@botname username` |
 | | Quick Check | Just type a username — no command needed! |
 | | Check History | View recent checks with `/history` |
 | | Bot Status | Check uptime & responsiveness with `/ping` |
@@ -213,8 +214,11 @@ A textarea widget lets you paste multiple usernames (one per line), then click t
 | `/ping` | Check bot uptime & responsiveness | `/ping` |
 | `/about` | Bot info, version, and credits | `/about` |
 | `/stop` | Stop current batch/generation | `/stop` |
+| `@botname username` | Inline query — check from any chat | `@mybot coolname123` |
 
 **💡 Quick check:** Just type a username as a message (no command needed) — the bot checks it instantly.
+
+**🔍 Inline query:** Use `@botname username` in any chat to check availability without opening the bot.
 
 **🎮 Inline keyboard:** All commands have interactive button menus. Settings, stats, and results include action buttons for common workflows.
 
@@ -506,6 +510,16 @@ Patterns let you generate usernames from a template. Use special characters as p
 4. Click ▶️ — the bot starts!
 5. Open Telegram → find your bot → `/start`
 6. Keep the cell running while you use the bot
+</details>
+
+<details>
+<summary><b>What's new in v3.1?</b></summary>
+
+- **Inline query mode:** Check usernames from any chat with `@botname username`
+- **Web App integration:** Launch the bot as a Mini App inside Telegram
+- **Compatibility fix:** `thumb_url` → `thumbnail_url` for python-telegram-bot v20+
+- **Bug fixes:** Stale refs, export button callback, notebook cleanup
+- See [CHANGELOG.md](CHANGELOG.md) for full details
 </details>
 
 <details>

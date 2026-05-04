@@ -106,7 +106,7 @@ class TelegramNotifier:
         buttons = [
             [
                 {"text": "📊 Stats", "callback_data": "st"},
-                {"text": "📤 Export Hits", "callback_data": "export_hits"},
+                {"text": "📤 Export Hits", "callback_data": "ex"},
             ],
         ]
         return self.send(msg, buttons=buttons)

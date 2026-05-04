@@ -1,9 +1,22 @@
 """
 Telegram Username API Client — check username availability via t.me page scraping.
 Handles rate limiting, retries, and User-Agent rotation.
+
+Detection method:
+    TAKEN indicators (any of these means the username is registered):
+      - Profile photo (tgme_page_photo_image)       → real user/channel/group
+      - Display name (tgme_page_title with content)  → real user/channel/group
+      - Subscriber/member count (tgme_page_extra)    → channel/group
+      - Actual bio text (not just generic contact)    → user with bio
+
+    AVAILABLE indicators:
+      - Only generic "If you have Telegram, you can contact @username right away."
+      - No profile photo, no display name, no subscriber count, no real bio
+      - Page has tgme_page_icon (generic icon) instead of tgme_page_photo
 """
 
 import random
+import re
 import time
 import requests
 from typing import Optional, Tuple
@@ -20,6 +33,18 @@ ERROR = "error"
 # Telegram username rules: 5-32 chars, a-z, 0-9, underscores
 # Must start with a letter, no double underscores, no trailing underscore
 VALID_USERNAME_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_")
+
+# Compiled regex patterns for detection
+_TITLE_RE = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_PHOTO_RE = re.compile(r'tgme_page_photo_image', re.IGNORECASE)
+_NAME_TITLE_RE = re.compile(r'tgme_page_title[^>]*>(.*?)</div>', re.IGNORECASE | re.DOTALL)
+_SUBS_RE = re.compile(r'tgme_page_extra[^>]*>(.*?)</div>', re.IGNORECASE | re.DOTALL)
+_DESC_RE = re.compile(r'tgme_page_description[^>]*dir="auto">(.*?)</div>', re.IGNORECASE | re.DOTALL)
+
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags from text."""
+    return re.sub(r'<[^>]+>', '', text).strip()
 
 
 def is_valid_username(username: str) -> bool:
@@ -74,34 +99,30 @@ class TelegramUsernameClient:
             if resp.status_code == 429:
                 return (RATE_LIMITED, username)
 
-            if "can find <strong>" in text and "on Telegram" in text:
-                # "can find <strong>username</strong> on Telegram" → taken
+            # Check for actual profile data (indicates a registered username)
+            has_photo = bool(_PHOTO_RE.search(text))
+
+            name_match = _NAME_TITLE_RE.search(text)
+            has_name = bool(name_match and _strip_html(name_match.group(1)))
+
+            subs_match = _SUBS_RE.search(text)
+            has_subs = bool(subs_match and ("subscribers" in subs_match.group(1).lower()
+                                            or "members" in subs_match.group(1).lower()))
+
+            desc_match = _DESC_RE.search(text)
+            has_bio = False
+            if desc_match:
+                desc_text = _strip_html(desc_match.group(1))
+                # Generic contact message = not a real bio
+                generic = f"you can contact @{username.lower()} right away"
+                has_bio = bool(desc_text) and generic not in desc_text.lower()
+
+            # Any real profile data → TAKEN
+            if has_photo or has_name or has_subs or has_bio:
                 return (TAKEN, username)
 
-            if "If you have <strong>Telegram</strong>, you can contact" in text:
-                # Profile page with contact button → taken
-                return (TAKEN, username)
-
-            if "tgme_page_extra" in text and "on Telegram" in text:
-                # Profile metadata present → taken
-                return (TAKEN, username)
-
-            if "If you have <strong>Telegram</strong>, you can" in text:
-                return (TAKEN, username)
-
-            # Check for availability indicators
-            if "can be found on Telegram" in text.lower() and "contact" not in text.lower():
-                return (AVAILABLE, username)
-
-            # If we got a 200 but no clear "taken" indicators, likely available
-            # Telegram shows a clear profile page for taken usernames
+            # No profile data → AVAILABLE (Telegram shows generic contact page)
             if resp.status_code == 200:
-                # Double-check: if there's no profile info, it's available
-                if "tgme_page_title" not in text and "tgme_page_description" not in text:
-                    return (AVAILABLE, username)
-                # Has profile info → taken
-                if "tgme_page_title" in text:
-                    return (TAKEN, username)
                 return (AVAILABLE, username)
 
             return (ERROR, username)

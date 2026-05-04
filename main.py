@@ -24,7 +24,7 @@ from checker.core import Checker
 
 BANNER = """
 \033[2;36m══════════════════════════════════════════════════
-  🔍 TelegramUserCheckBot v3.0 — CLI Mode
+  🔍 TelegramUserCheckBot v3.1 — CLI Mode
 ══════════════════════════════════════════════════\033[0m
 """
 

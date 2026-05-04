@@ -1,0 +1,18 @@
+{
+  "telegram_token": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+  "telegram_chat_id": "987654321",
+  "username_length": 5,
+  "character_set": "abcdefghijklmnopqrstuvwxyz0123456789_",
+  "avoid_start_underscore": true,
+  "avoid_end_underscore": true,
+  "avoid_double_underscore": true,
+  "mode": "hits",
+  "stop_after_hits": 10,
+  "max_workers": 10,
+  "delay": 1.0,
+  "use_proxies": false,
+  "proxy_file": "",
+  "proxy_url": "",
+  "save_hits": true,
+  "output_file": "available_usernames.txt"
+}

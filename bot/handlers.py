@@ -19,7 +19,7 @@ Commands:
 
 import asyncio
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -38,13 +38,12 @@ from checker.telegram_client import (
     AVAILABLE, TAKEN, INVALID, RATE_LIMITED, ERROR,
     is_valid_username,
 )
-from checker.proxy import ProxyManager
 from checker.generator import UsernameGenerator
 from checker.telegram_client import is_valid_username
 
 
 # ── Constants ──
-VERSION = "2.0"
+VERSION = "2.1"
 DIVIDER = "─" * 26
 THICK_DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━━━━━"
 THIN_DIVIDER = "· · · · · · · · · · · · · ·"
@@ -854,6 +853,95 @@ async def _run_pattern_generation(update, session, count, pattern, message):
 
     kb = InlineKeyboardMarkup(buttons)
     await msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+
+async def _run_pattern_from_callback(query, session, count, pattern):
+    """Run pattern generation from a callback query (shared by pattern_tpl_ and pattern_more_)."""
+    session.running = True
+    session.should_stop = False
+
+    gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
+    gen_stream = gen.pattern_stream(pattern)
+
+    bar = progress_bar(0, count)
+    await query.edit_message_text(
+        f"{E['crystal']} <b>Pattern Generation</b>\n"
+        f"{THICK_DIVIDER}\n"
+        f"\n"
+        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+        f"\n"
+        f"<code>{bar}</code> 0/{count}\n"
+        f"\n"
+        f"<i>{E['crystal']} Generating from pattern...</i>",
+        parse_mode=ParseMode.HTML,
+    )
+
+    results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
+    start_time = time.time()
+
+    for i in range(count):
+        if session.should_stop:
+            break
+        username = next(gen_stream)
+        status, _ = await asyncio.to_thread(client.check, username, session.delay)
+        session.record(status, username)
+        results[status].append(username)
+
+        if (i + 1) % 3 == 0 or i == count - 1:
+            try:
+                bar = progress_bar(i + 1, count)
+                elapsed = time.time() - start_time
+                speed = (i + 1) / elapsed if elapsed > 0 else 0
+                await query.edit_message_text(
+                    f"{E['crystal']} <b>Pattern Generation</b>\n"
+                    f"{THICK_DIVIDER}\n"
+                    f"\n"
+                    f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+                    f"\n"
+                    f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
+                    f"\n"
+                    f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+                    f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+                    f"  {E['zap']} Speed: {speed:.1f}/sec\n"
+                    f"\n"
+                    f"<i>{E['clock']} Checking...</i>",
+                    parse_mode=ParseMode.HTML,
+                )
+            except Exception:
+                pass
+
+    session.running = False
+    elapsed = time.time() - start_time
+
+    hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
+    bar = progress_bar(count, count)
+    text = (
+        f"{E['trophy']} <b>Pattern Complete</b>\n"
+        f"{THICK_DIVIDER}\n"
+        f"\n"
+        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+        f"\n"
+        f"<code>{bar}</code> {count}/{count} (100%)\n"
+        f"\n"
+        f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+        f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+        f"  {E['time']} Time: {format_uptime(elapsed)}\n"
+        f"\n"
+        f"  {E['target']} <b>Available Usernames:</b>\n"
+        f"{hit_list}"
+    )
+    buttons = []
+    if results[AVAILABLE]:
+        buttons.append([InlineKeyboardButton(
+            f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
+            callback_data="export_hits"
+        )])
+    buttons.extend([
+        [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
+        [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
+    ])
+    kb = InlineKeyboardMarkup(buttons)
+    await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
 
 
 async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -1675,184 +1763,13 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("pattern_tpl_"):
         pattern = data[len("pattern_tpl_"):]
         session.pattern = pattern
-        # Run pattern generation inline
-        count = 20
-        session.running = True
-        session.should_stop = False
-
-        gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
-        gen_stream = gen.pattern_stream(pattern)
-
-        bar = progress_bar(0, count)
-        await query.edit_message_text(
-            f"{E['crystal']} <b>Pattern Generation</b>\n"
-            f"{THICK_DIVIDER}\n"
-            f"\n"
-            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-            f"\n"
-            f"<code>{bar}</code> 0/{count}\n"
-            f"\n"
-            f"<i>{E['crystal']} Generating from pattern...</i>",
-            parse_mode=ParseMode.HTML,
-        )
-
-        results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
-        start_time = time.time()
-
-        for i in range(count):
-            if session.should_stop:
-                break
-            username = next(gen_stream)
-            status, _ = await asyncio.to_thread(client.check, username, session.delay)
-            session.record(status, username)
-            results[status].append(username)
-
-            if (i + 1) % 3 == 0 or i == count - 1:
-                try:
-                    bar = progress_bar(i + 1, count)
-                    elapsed = time.time() - start_time
-                    speed = (i + 1) / elapsed if elapsed > 0 else 0
-                    await query.edit_message_text(
-                        f"{E['crystal']} <b>Pattern Generation</b>\n"
-                        f"{THICK_DIVIDER}\n"
-                        f"\n"
-                        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-                        f"\n"
-                        f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
-                        f"\n"
-                        f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
-                        f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
-                        f"  {E['zap']} Speed: {speed:.1f}/sec\n"
-                        f"\n"
-                        f"<i>{E['clock']} Checking...</i>",
-                        parse_mode=ParseMode.HTML,
-                    )
-                except Exception:
-                    pass
-
-        session.running = False
-        elapsed = time.time() - start_time
-
-        hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
-        bar = progress_bar(count, count)
-        text = (
-            f"{E['trophy']} <b>Pattern Complete</b>\n"
-            f"{THICK_DIVIDER}\n"
-            f"\n"
-            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-            f"\n"
-            f"<code>{bar}</code> {count}/{count} (100%)\n"
-            f"\n"
-            f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
-            f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
-            f"  {E['time']} Time: {format_uptime(elapsed)}\n"
-            f"\n"
-            f"  {E['target']} <b>Available Usernames:</b>\n"
-            f"{hit_list}"
-        )
-        buttons = []
-        if results[AVAILABLE]:
-            buttons.append([InlineKeyboardButton(
-                f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
-                callback_data="export_hits"
-            )])
-        buttons.extend([
-            [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
-            [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
-        ])
-        kb = InlineKeyboardMarkup(buttons)
-        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+        await _run_pattern_from_callback(query, session, 20, pattern)
 
     # ── Pattern more ──
     elif data.startswith("pattern_more_"):
         pattern = data[len("pattern_more_"):]
         session.pattern = pattern
-        count = 20
-        session.running = True
-        session.should_stop = False
-
-        gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
-        gen_stream = gen.pattern_stream(pattern)
-
-        bar = progress_bar(0, count)
-        await query.edit_message_text(
-            f"{E['crystal']} <b>Pattern Generation</b>\n"
-            f"{THICK_DIVIDER}\n"
-            f"\n"
-            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-            f"\n"
-            f"<code>{bar}</code> 0/{count}\n"
-            f"\n"
-            f"<i>{E['crystal']} Generating from pattern...</i>",
-            parse_mode=ParseMode.HTML,
-        )
-
-        results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
-        start_time = time.time()
-
-        for i in range(count):
-            if session.should_stop:
-                break
-            username = next(gen_stream)
-            status, _ = await asyncio.to_thread(client.check, username, session.delay)
-            session.record(status, username)
-            results[status].append(username)
-
-            if (i + 1) % 3 == 0 or i == count - 1:
-                try:
-                    bar = progress_bar(i + 1, count)
-                    elapsed = time.time() - start_time
-                    speed = (i + 1) / elapsed if elapsed > 0 else 0
-                    await query.edit_message_text(
-                        f"{E['crystal']} <b>Pattern Generation</b>\n"
-                        f"{THICK_DIVIDER}\n"
-                        f"\n"
-                        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-                        f"\n"
-                        f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
-                        f"\n"
-                        f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
-                        f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
-                        f"  {E['zap']} Speed: {speed:.1f}/sec\n"
-                        f"\n"
-                        f"<i>{E['clock']} Checking...</i>",
-                        parse_mode=ParseMode.HTML,
-                    )
-                except Exception:
-                    pass
-
-        session.running = False
-        elapsed = time.time() - start_time
-
-        hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
-        bar = progress_bar(count, count)
-        text = (
-            f"{E['trophy']} <b>Pattern Complete</b>\n"
-            f"{THICK_DIVIDER}\n"
-            f"\n"
-            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
-            f"\n"
-            f"<code>{bar}</code> {count}/{count} (100%)\n"
-            f"\n"
-            f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
-            f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
-            f"  {E['time']} Time: {format_uptime(elapsed)}\n"
-            f"\n"
-            f"  {E['target']} <b>Available Usernames:</b>\n"
-            f"{hit_list}"
-        )
-        buttons = []
-        if results[AVAILABLE]:
-            buttons.append([InlineKeyboardButton(
-                f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
-                callback_data="export_hits"
-            )])
-        buttons.extend([
-            [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
-            [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
-        ])
-        kb = InlineKeyboardMarkup(buttons)
-        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+        await _run_pattern_from_callback(query, session, 20, pattern)
 
 
 # ============================================================================

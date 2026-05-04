@@ -6,7 +6,7 @@ Generates Telegram-compliant usernames (5-32 chars, a-z, 0-9, underscores).
 import random
 import re
 import requests
-from typing import Iterator, List, Optional, Set
+from typing import Iterator, List, Set
 
 
 # Common English words for word-combo generation

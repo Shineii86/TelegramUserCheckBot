@@ -12,7 +12,7 @@ import argparse
 import os
 import sys
 
-from bot.handlers import run_bot, BOT_USERNAME, VERSION
+from bot.handlers import run_bot, VERSION
 
 
 BANNER = f"""

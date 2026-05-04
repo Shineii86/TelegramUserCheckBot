@@ -66,11 +66,11 @@ class TelegramNotifier:
         buttons = [
             [
                 {"text": "📱 Open in Telegram", "url": f"https://t.me/{username}"},
-                {"text": "📋 Copy Name", "callback_data": f"copy_{username}"},
+                {"text": "📋 Copy Name", "callback_data": f"c:{username}"},
             ],
             [
-                {"text": "📊 Stats", "callback_data": "stats"},
-                {"text": "🛑 Stop", "callback_data": "stop_check"},
+                {"text": "📊 Stats", "callback_data": "st"},
+                {"text": "🛑 Stop", "callback_data": "x"},
             ],
         ]
         return self.send(msg, buttons=buttons)
@@ -105,7 +105,7 @@ class TelegramNotifier:
         )
         buttons = [
             [
-                {"text": "📊 Stats", "callback_data": "stats"},
+                {"text": "📊 Stats", "callback_data": "st"},
                 {"text": "📤 Export Hits", "callback_data": "export_hits"},
             ],
         ]

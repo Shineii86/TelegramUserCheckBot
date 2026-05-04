@@ -351,6 +351,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] — 2026-05-04
+
+### 🎨 v3.0 — Full UI/UX Overhaul
+
+#### ✨ Added
+- **Unified renderers** — `render_start()`, `render_help()`, `render_settings()`, `render_stats()`, `render_history()`, `render_export()` eliminate code duplication between command and callback handlers
+- **`safe_edit()` helper** — Silently handles "message is not modified" errors instead of crashing
+- **`_render_check_result()` shared renderer** — Single source of truth for check results (used by `/check`, quick check, and retry callback)
+- **Unified `_run_generation()` engine** — Handles `/generate`, `/pattern`, and all callback-triggered generation in one function (eliminated duplicate `_run_pattern_cb`)
+- **Toast notifications** — Settings changes now show `query.answer()` toasts instead of replacing the entire settings screen
+- **`/cancel` command** — Alias for `/stop`
+- **Stop callback handler** — `x` callback from notifier buttons now properly handled
+
+#### 🔧 Changed — Callback Data Overhaul
+- **Shortened all callback_data** to stay well under Telegram's 64-byte limit:
+  - `back_start` → `b`
+  - `quick_generate` → `qg`
+  - `settings` → `s`
+  - `stats` → `st`
+  - `history` → `hi`
+  - `help` → `hp`
+  - `export_hits` → `ex`
+  - `set_length` → `sl`, `len_5` → `l:5`
+  - `set_chars` → `sc`, `chars_default` → `ch:d`
+  - `set_delay` → `sd`, `delay_1.0` → `d:1.0`
+  - `set_workers` → `sw`, `workers_5` → `w:5`
+  - `set_gen_mode` → `sg`, `gen_random` → `gm:random`
+  - `pattern_menu` → `pm`
+  - `pattern_tpl_user_????` → `pt:u4` (mapped via `tpl_map`)
+  - `confirm_reset_settings` → `crs`, `reset_settings` → `rs`
+  - `confirm_reset_stats` → `crst`, `reset_stats` → `rst`
+  - `copy_username` → `c:username`
+  - `retry_username` → `r:username`
+  - `stop_check` → `x`
+- **Payload format** — Uses colon separator (`l:5`, `ch:d`, `d:1.0`, `gm:random`, `c:name`, `r:name`) for compact variable data
+
+#### 🐛 Fixed
+- **"message is not modified" crash** — All `edit_text` calls wrapped in `safe_edit()`
+- **stop_check callback not handled** — Added `x` handler
+- **Duplicate code eliminated** — Settings/stats/history/help screens no longer rendered twice (once in command, once in callback)
+- **Pattern template callback overflow** — `pattern_tpl_user_????` could exceed 64-byte limit; now uses `pt:u4` mapping
+
+#### 📝 Documentation
+- **CHANGELOG.md** — v3.0.0 release notes
+- **README.md** — Version bump, updated features
+
+---
+
 ## [Unreleased]
 
 ### 🔮 Planned

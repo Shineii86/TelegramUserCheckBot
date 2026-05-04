@@ -7,6 +7,135 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] — 2026-05-04
+
+### 🧬 Generation Engine, Retry Logic & Rich Notifications
+
+#### ✨ Added — Generation Engine
+- **Word Combo Generator** — Adjective + noun + number combinations
+  - 60+ adjectives (fast, cool, cyber, pixel, quantum, etc.)
+  - 60+ nouns (coder, ninja, dragon, phoenix, etc.)
+  - Smart number suffixes (1-999) with 60% probability
+  - Always produces Telegram-valid usernames
+- **Pattern Template Generator** — Generate from custom patterns
+  - `/pattern user_????` — random letters
+  - `/pattern test_##` — random digits
+  - `/pattern my_!_!_name` — mixed alphanumeric
+  - Full syntax: `?`=letter `#`=digit `!`=alnum `_`=underscore `@`=any
+- **Mixed Generation Mode** — Round-robin across random + word combo
+- **Smart Dedup** — Tracks all generated usernames to prevent duplicates
+- **Generation Mode Selector** — New setting in /settings
+  - 🎲 Random — Pure random characters
+  - 🧠 Word Combos — Adjective+noun+number
+  - 🌈 Mixed — Best of both worlds
+- **Pattern Quick Templates** — One-tap pattern generation from menu
+  - user_????, name_##_ab, my_!_!_!_tag, pro_####
+- **New `/pattern` command** — Full pattern template support
+  - Syntax help on empty invocation
+  - Pattern validation with clear error messages
+  - "Generate More" button for continuous pattern hunting
+
+#### ✨ Added — Retry Logic & Backoff
+- **Exponential backoff** on rate limits (base 2.0, max 30s)
+  - Automatic retry up to 3 times per request
+  - Jitter added to prevent thundering herd
+  - UA rotation on each retry attempt
+- **Auto-adjust delay** — Automatically increases delay after consecutive rate limits
+  - 1+ rate limits → 2.0s delay
+  - 3+ rate limits → 3.0s delay
+  - 5+ rate limits → 5.0s delay
+- **`recommended_delay` property** — Dynamic delay based on rate limit history
+- **`is_rate_limited` property** — Track consecutive rate limit hits
+
+#### ✨ Added — Rich Notifications
+- **Rich hit alerts** — Expanded notification with inline buttons
+  - "Open in Telegram" + "Copy Name" buttons
+  - "Stats" + "Stop" buttons for control
+  - Better formatting with emoji and dividers
+- **Progress notifications** — Periodic updates every N checks
+  - Configurable interval via `notify_progress_interval`
+  - Progress bar with percentage (count mode)
+- **Rate limit notification** — Alert when rate limited
+- **Enhanced finish notification** — Summary with hit rate + export button
+- **`send_progress()` method** — Progress bar in notifications
+- **`send_rate_limit()` method** — Rate limit warnings
+- **Configurable notifications** — `notify_on_hit`, `notify_on_finish`, `notify_progress_interval`
+
+#### ✨ Added — CLI Improvements
+- **Colored banner** — Startup banner with cyan borders
+- **Spinner animation** — ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ during checks
+- **Live stats line** — Overwriting progress line in count mode
+- **Colored summary** — Emoji-rich completion report
+- **Speed display** — Checks/sec in summary
+- **Hit rate display** — Percentage in summary
+- **Pattern support** — `--pattern` CLI argument
+- **Generation mode** — `--gen-mode` CLI argument
+- **Better error messages** — Pattern validation with examples
+
+#### 🔧 Changed
+- **`checker/telegram_client.py`** — Added retry with exponential backoff
+  - `_calculate_backoff()` helper function
+  - Max 3 retries per request
+  - UA rotation between retries
+  - Rate limit tracking (consecutive count)
+- **`checker/generator.py`** — Major expansion
+  - Added `_ADJECTIVES` and `_NOUNS` word lists
+  - Added `_PATTERN_MAP` for pattern template parsing
+  - `word_combo_stream()` — Word combination generator
+  - `pattern_stream()` — Pattern template generator
+  - `mixed_stream()` — Mixed strategy generator
+  - `_is_unique()` — Smart dedup with seen set
+  - `validate_pattern()` — Pattern validation
+  - `seen_count` property and `clear_seen()` method
+- **`checker/config.py`** — New config fields
+  - `generation_mode` — "random", "word_combo", "mixed"
+  - `use_pattern` / `pattern` — Pattern template support
+  - `max_retries` / `retry_backoff_base` — Retry configuration
+  - `auto_adjust_delay` — Dynamic delay adjustment
+  - `notify_on_hit` / `notify_on_finish` / `notify_progress_interval`
+- **`checker/core.py`** — Enhanced CLI output
+  - `_print_banner()` — Colored startup banner
+  - `_spinner()` — Animated spinner
+  - `_progress_bar()` — Colored progress bar
+  - `_print_live_stats()` — Overwriting progress line
+  - `_get_generator_stream()` — Mode-aware stream selection
+  - Pattern support in `_username_source()`
+  - Better summary with emoji, speed, hit rate
+- **`checker/telegram_notifier.py`** — Rich notifications
+  - `_post()` helper for Bot API calls
+  - `buttons` parameter on `send()` method
+  - Enhanced `send_hit()` with inline buttons
+  - Enhanced `send_finish()` with summary + export button
+  - New `send_progress()` and `send_rate_limit()` methods
+- **`bot/handlers.py`** — New commands and UI
+  - `/pattern` command with full syntax help
+  - `_run_generation()` helper for mode-aware generation
+  - `_run_pattern_generation()` for pattern-based flow
+  - Generation mode selector in settings
+  - Pattern menu with quick templates
+  - Pattern_more callback for continuous hunting
+  - Settings shows gen mode and pattern
+  - Reset clears gen mode and pattern
+  - Help updated with /pattern and pattern syntax
+  - Start menu includes /pattern
+- **`main.py`** — New CLI arguments
+  - `--gen-mode` — random/word_combo/mixed
+  - `--pattern` — Pattern template
+  - Pattern validation before run
+  - Startup banner
+- **`run_bot.py`** — Better startup banner
+- **`config.example.json`** — New fields documented
+- **`requirements.txt`** — Version ranges pinned
+
+#### 📝 Documentation
+- **README.md** — Updated to v2.1
+  - New features in Features table
+  - New /pattern command in Bot Commands
+  - Updated "What's new?" FAQ
+- **CHANGELOG.md** — Added v2.1.0 release notes
+
+---
+
 ## [2.0.0] — 2026-05-04
 
 ### 🎨 UI/UX Overhaul & New Commands

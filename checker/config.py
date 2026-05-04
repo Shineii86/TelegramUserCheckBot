@@ -26,6 +26,11 @@ class Config:
     avoid_start_number: bool = False
     min_length: int = 5
     max_length: int = 32
+    generation_mode: str = "random"  # "random", "word_combo", "mixed"
+
+    # Pattern templates
+    use_pattern: bool = False
+    pattern: str = ""  # e.g., "user_????", "test_##"
 
     # Wordlist
     use_wordlist: bool = False
@@ -44,9 +49,19 @@ class Config:
     proxy_file: str = ""
     proxy_url: str = ""
 
+    # Retry behavior
+    max_retries: int = 3
+    retry_backoff_base: float = 2.0
+    auto_adjust_delay: bool = True  # Auto-increase delay on rate limits
+
     # Output
     save_hits: bool = True
     output_file: str = "available_usernames.txt"
+
+    # Notification style
+    notify_on_hit: bool = True
+    notify_on_finish: bool = True
+    notify_progress_interval: int = 50  # Send progress update every N checks
 
     # User-Agent rotation
     user_agents: List[str] = field(default_factory=lambda: [
@@ -72,6 +87,9 @@ class Config:
             avoid_start_number=os.getenv("AVOID_START_NUMBER", "false").lower() == "true",
             min_length=int(os.getenv("MIN_LENGTH", "5")),
             max_length=int(os.getenv("MAX_LENGTH", "32")),
+            generation_mode=os.getenv("GENERATION_MODE", "random"),
+            use_pattern=os.getenv("USE_PATTERN", "false").lower() == "true",
+            pattern=os.getenv("PATTERN", ""),
             use_wordlist=os.getenv("USE_WORDLIST", "false").lower() == "true",
             wordlist_path=os.getenv("WORDLIST_PATH", ""),
             wordlist_url=os.getenv("WORDLIST_URL", ""),
@@ -83,8 +101,14 @@ class Config:
             use_proxies=os.getenv("USE_PROXIES", "false").lower() == "true",
             proxy_file=os.getenv("PROXY_FILE", ""),
             proxy_url=os.getenv("PROXY_URL", ""),
+            max_retries=int(os.getenv("MAX_RETRIES", "3")),
+            retry_backoff_base=float(os.getenv("RETRY_BACKOFF_BASE", "2.0")),
+            auto_adjust_delay=os.getenv("AUTO_ADJUST_DELAY", "true").lower() == "true",
             save_hits=os.getenv("SAVE_HITS", "true").lower() == "true",
             output_file=os.getenv("OUTPUT_FILE", "available_usernames.txt"),
+            notify_on_hit=os.getenv("NOTIFY_ON_HIT", "true").lower() == "true",
+            notify_on_finish=os.getenv("NOTIFY_ON_FINISH", "true").lower() == "true",
+            notify_progress_interval=int(os.getenv("NOTIFY_PROGRESS_INTERVAL", "50")),
         )
 
     @classmethod
@@ -111,4 +135,12 @@ class Config:
             errors.append("USERNAME_LENGTH must be >= 5 (Telegram minimum)")
         if self.username_length > 32:
             errors.append("USERNAME_LENGTH must be <= 32 (Telegram maximum)")
+        if self.generation_mode not in ("random", "word_combo", "mixed"):
+            errors.append(f"Invalid GENERATION_MODE: {self.generation_mode}")
+        if self.use_pattern and not self.pattern:
+            errors.append("PATTERN is required when USE_PATTERN is true")
+        if self.max_retries < 0:
+            errors.append("MAX_RETRIES must be >= 0")
+        if self.notify_progress_interval < 1:
+            errors.append("NOTIFY_PROGRESS_INTERVAL must be >= 1")
         return errors

@@ -7,6 +7,7 @@ Commands:
     /check <name>   — Check a single username
     /batch <names>  — Check multiple usernames (comma-separated)
     /generate [N]   — Generate & check random usernames
+    /pattern <tmpl> — Generate from pattern template
     /settings       — View/change settings with inline buttons
     /stats          — Session statistics with visual bars
     /history        — View recent check history
@@ -39,6 +40,7 @@ from checker.telegram_client import (
 )
 from checker.proxy import ProxyManager
 from checker.generator import UsernameGenerator
+from checker.telegram_client import is_valid_username
 
 
 # ── Constants ──
@@ -137,6 +139,8 @@ class UserSession:
         self.char_set = "abcdefghijklmnopqrstuvwxyz0123456789_"
         self.delay = 1.0
         self.max_workers = 5
+        self.generation_mode = "random"  # "random", "word_combo", "mixed"
+        self.pattern = ""  # Pattern template for /pattern
 
     def reset_stats(self):
         self.checked = 0
@@ -221,6 +225,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     else:
         greeting = "Hey"
 
+    # Add /pattern to start text
     text = (
         f"{E['wave']} <b>{greeting}, {user.first_name}!</b>\n"
         f"\n"
@@ -235,6 +240,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"  {E['check']}  <b>/check</b> <code>username</code> — Check one name\n"
         f"  {E['pack']}  <b>/batch</b> <code>a,b,c</code> — Check multiple\n"
         f"  {E['magic']}  <b>/generate</b> <code>[N]</code> — Random names\n"
+        f"  {E['crystal']}  <b>/pattern</b> <code>tmpl</code> — Pattern templates\n"
         f"  {E['settings']}  <b>/settings</b> — Tune your preferences\n"
         f"  {E['stats']}  <b>/stats</b> — View session stats\n"
         f"  {E['history']}  <b>/history</b> — Recent check log\n"
@@ -547,18 +553,8 @@ async def cmd_batch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
 
 
-async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Handle /generate — generate and check random usernames."""
-    session = get_session(update.effective_user.id)
-    count = 20
-
-    if ctx.args:
-        try:
-            count = int(ctx.args[0])
-            count = max(1, min(count, 100))
-        except ValueError:
-            pass
-
+async def _run_generation(update, session, count, message):
+    """Run generation with the configured mode."""
     session.running = True
     session.should_stop = False
 
@@ -567,12 +563,26 @@ async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         chars=session.char_set,
     )
 
+    # Choose stream based on generation mode
+    if session.generation_mode == "word_combo":
+        gen_stream = gen.word_combo_stream()
+        mode_label = "Word Combos"
+        mode_icon = E['brain']
+    elif session.generation_mode == "mixed":
+        gen_stream = gen.mixed_stream()
+        mode_label = "Mixed"
+        mode_icon = E['rainbow']
+    else:
+        gen_stream = gen.random_stream()
+        mode_label = "Random"
+        mode_icon = E['fire']
+
     bar = progress_bar(0, count)
-    msg = await update.message.reply_text(
-        f"{E['fire']} <b>Generating & Checking</b>\n"
+    msg = await message.reply_text(
+        f"{mode_icon} <b>Generating & Checking</b>\n"
         f"{THICK_DIVIDER}\n"
         f"\n"
-        f"  {E['pack']} <b>Count:</b> {count}\n"
+        f"  {E['gear']} <b>Mode:</b> {mode_label}\n"
         f"  {E['settings']} <b>Length:</b> {session.username_length} chars\n"
         f"  {E['gear']} <b>Chars:</b> <code>{session.char_set_label}</code>\n"
         f"  {E['clock']} <b>Delay:</b> {session.delay}s\n"
@@ -584,14 +594,13 @@ async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
     results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
-    gen_iter = gen.random_stream()
     start_time = time.time()
 
     for i in range(count):
         if session.should_stop:
             break
 
-        username = next(gen_iter)
+        username = next(gen_stream)
         status, _ = await asyncio.to_thread(client.check, username, session.delay)
         session.record(status, username)
         results[status].append(username)
@@ -602,9 +611,10 @@ async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 elapsed = time.time() - start_time
                 speed = (i + 1) / elapsed if elapsed > 0 else 0
                 await msg.edit_text(
-                    f"{E['fire']} <b>Generating & Checking</b>\n"
+                    f"{mode_icon} <b>Generating & Checking</b>\n"
                     f"{THICK_DIVIDER}\n"
                     f"\n"
+                    f"  {E['gear']} Mode: {mode_label}\n"
                     f"  {E['settings']} Length: {session.username_length} {DIVIDER} Chars: <code>{session.char_set_label}</code>\n"
                     f"\n"
                     f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
@@ -631,6 +641,7 @@ async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"{E['trophy']} <b>Generation Complete</b>\n"
         f"{THICK_DIVIDER}\n"
         f"\n"
+        f"  {E['gear']} Mode: {mode_label}\n"
         f"  {E['settings']} Length: {session.username_length} {DIVIDER} Chars: <code>{session.char_set_label}</code>\n"
         f"\n"
         f"<code>{bar}</code> {count}/{count} (100%)\n"
@@ -655,6 +666,189 @@ async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )])
     buttons.extend([
         [InlineKeyboardButton(f"{E['magic']} Generate More", callback_data="quick_generate")],
+        [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
+    ])
+
+    kb = InlineKeyboardMarkup(buttons)
+    await msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+
+async def cmd_generate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle /generate — generate and check random usernames."""
+    session = get_session(update.effective_user.id)
+    count = 20
+
+    if ctx.args:
+        try:
+            count = int(ctx.args[0])
+            count = max(1, min(count, 100))
+        except ValueError:
+            # Check if it's a mode keyword
+            if ctx.args[0] in ("random", "word_combo", "mixed"):
+                session.generation_mode = ctx.args[0]
+                if len(ctx.args) > 1:
+                    try:
+                        count = max(1, min(int(ctx.args[1]), 100))
+                    except ValueError:
+                        pass
+
+    await _run_generation(update, session, count, update.message)
+
+
+async def cmd_pattern(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle /pattern — generate from a pattern template.
+
+    Pattern syntax:
+        ? = random letter (a-z)
+        # = random digit (0-9)
+        _ = literal underscore
+        @ = random char (a-z, 0-9, _)
+        ! = random letter or digit
+
+    Examples:
+        /pattern user_????
+        /pattern test_##_ab
+        /pattern my_!_!_name
+    """
+    if not ctx.args:
+        await update.message.reply_text(
+            f"{E['bulb']} <b>Usage:</b> <code>/pattern template</code>\n\n"
+            f"<b>Pattern syntax:</b>\n"
+            f"  <code>?</code> = random letter (a-z)\n"
+            f"  <code>#</code> = random digit (0-9)\n"
+            f"  <code>_</code> = literal underscore\n"
+            f"  <code>@</code> = random char (a-z, 0-9, _)\n"
+            f"  <code>!</code> = random letter or digit\n"
+            f"  any other = literal character\n\n"
+            f"<b>Examples:</b>\n"
+            f"  <code>/pattern user_????</code>\n"
+            f"  <code>/pattern test_##_ab</code>\n"
+            f"  <code>/pattern my_!_!_name</code>",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    pattern = ctx.args[0]
+
+    # Validate pattern
+    valid, err = UsernameGenerator.validate_pattern(pattern)
+    if not valid:
+        await update.message.reply_text(
+            f"{E['invalid']} <b>Invalid Pattern</b>\n"
+            f"{DIVIDER}\n"
+            f"{err}\n\n"
+            f"<i>Use /pattern for syntax help.</i>",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    session = get_session(update.effective_user.id)
+    session.pattern = pattern
+    count = 20
+    if len(ctx.args) > 1:
+        try:
+            count = max(1, min(int(ctx.args[1]), 100))
+        except ValueError:
+            pass
+
+    await _run_pattern_generation(update, session, count, pattern, update.message)
+
+
+async def _run_pattern_generation(update, session, count, pattern, message):
+    """Run pattern-based generation."""
+    session.running = True
+    session.should_stop = False
+
+    gen = UsernameGenerator(
+        length=session.username_length,
+        chars=session.char_set,
+    )
+
+    bar = progress_bar(0, count)
+    msg = await message.reply_text(
+        f"{E['crystal']} <b>Pattern Generation</b>\n"
+        f"{THICK_DIVIDER}\n"
+        f"\n"
+        f"  {E['pin']} <b>Pattern:</b> <code>{pattern}</code>\n"
+        f"  {E['pack']} <b>Count:</b> {count}\n"
+        f"  {E['clock']} <b>Delay:</b> {session.delay}s\n"
+        f"\n"
+        f"<code>{bar}</code> 0/{count}\n"
+        f"\n"
+        f"<i>{E['crystal']} Generating from pattern...</i>",
+        parse_mode=ParseMode.HTML,
+    )
+
+    results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
+    gen_iter = gen.pattern_stream(pattern)
+    start_time = time.time()
+
+    for i in range(count):
+        if session.should_stop:
+            break
+
+        username = next(gen_iter)
+        status, _ = await asyncio.to_thread(client.check, username, session.delay)
+        session.record(status, username)
+        results[status].append(username)
+
+        if (i + 1) % 3 == 0 or i == count - 1:
+            try:
+                bar = progress_bar(i + 1, count)
+                elapsed = time.time() - start_time
+                speed = (i + 1) / elapsed if elapsed > 0 else 0
+                await msg.edit_text(
+                    f"{E['crystal']} <b>Pattern Generation</b>\n"
+                    f"{THICK_DIVIDER}\n"
+                    f"\n"
+                    f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+                    f"\n"
+                    f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
+                    f"\n"
+                    f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+                    f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+                    f"  {E['zap']} Speed: {speed:.1f}/sec\n"
+                    f"\n"
+                    f"<i>{E['clock']} Checking...</i>",
+                    parse_mode=ParseMode.HTML,
+                )
+            except Exception:
+                pass
+
+    session.running = False
+    elapsed = time.time() - start_time
+
+    hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
+    stopped = f"{E['stop']} <b>Stopped by user</b>\n\n" if session.should_stop else ""
+
+    bar = progress_bar(count, count)
+    text = (
+        f"{stopped}"
+        f"{E['trophy']} <b>Pattern Generation Complete</b>\n"
+        f"{THICK_DIVIDER}\n"
+        f"\n"
+        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+        f"\n"
+        f"<code>{bar}</code> {count}/{count} (100%)\n"
+        f"\n"
+        f"  {E['chart']} <b>Results:</b>\n"
+        f"    {E['magnifier']} Checked: {count}\n"
+        f"    {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+        f"    {E['taken']} Taken: {len(results[TAKEN])}\n"
+        f"    {E['time']} Time: {format_uptime(elapsed)}\n"
+        f"\n"
+        f"  {E['target']} <b>Available Usernames:</b>\n"
+        f"{hit_list}"
+    )
+
+    buttons = []
+    if results[AVAILABLE]:
+        buttons.append([InlineKeyboardButton(
+            f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
+            callback_data="export_hits"
+        )])
+    buttons.extend([
+        [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
         [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
     ])
 
@@ -849,6 +1043,10 @@ async def show_settings(message, session: UserSession):
             InlineKeyboardButton(f"🧵 Workers ({session.max_workers})", callback_data="set_workers"),
         ],
         [
+            InlineKeyboardButton(f"{E['gear']} Gen Mode ({session.generation_mode})", callback_data="set_gen_mode"),
+            InlineKeyboardButton(f"{E['crystal']} Pattern", callback_data="pattern_menu"),
+        ],
+        [
             InlineKeyboardButton(f"{E['refresh']} Reset All", callback_data="confirm_reset_settings"),
             InlineKeyboardButton(f"{E['back']} Back", callback_data="back_start"),
         ],
@@ -880,6 +1078,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"  {E['check']}  <b>/check</b> — Check one username\n"
             f"  {E['pack']}  <b>/batch</b> — Check multiple at once\n"
             f"  {E['magic']}  <b>/generate</b> — Generate & check random names\n"
+            f"  {E['crystal']}  <b>/pattern</b> — Generate from pattern template\n"
             f"  {E['settings']}  <b>/settings</b> — Configure preferences\n"
             f"  {E['stats']}  <b>/stats</b> — View session statistics\n"
             f"  {E['history']}  <b>/history</b> — Recent check log\n"
@@ -895,28 +1094,47 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(f"{E['magic']} Generate", callback_data="quick_generate"),
             ],
             [
+                InlineKeyboardButton(f"{E['crystal']} Pattern", callback_data="pattern_menu"),
                 InlineKeyboardButton(f"{E['settings']} Settings", callback_data="settings"),
-                InlineKeyboardButton(f"{E['stats']} Stats", callback_data="stats"),
             ],
             [
+                InlineKeyboardButton(f"{E['stats']} Stats", callback_data="stats"),
                 InlineKeyboardButton(f"{E['history']} History", callback_data="history"),
+            ],
+            [
                 InlineKeyboardButton(f"{E['bulb']} Help", callback_data="help"),
             ],
         ])
         await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
 
     elif data == "quick_generate":
+        # Use configured generation mode
         session.running = True
         session.should_stop = False
         count = 20
 
         gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
 
+        # Choose stream based on generation mode
+        if session.generation_mode == "word_combo":
+            gen_stream = gen.word_combo_stream()
+            mode_label = "Word Combos"
+            mode_icon = E['brain']
+        elif session.generation_mode == "mixed":
+            gen_stream = gen.mixed_stream()
+            mode_label = "Mixed"
+            mode_icon = E['rainbow']
+        else:
+            gen_stream = gen.random_stream()
+            mode_label = "Random"
+            mode_icon = E['fire']
+
         bar = progress_bar(0, count)
         await query.edit_message_text(
-            f"{E['fire']} <b>Generating & Checking</b>\n"
+            f"{mode_icon} <b>Generating & Checking</b>\n"
             f"{THICK_DIVIDER}\n"
             f"\n"
+            f"  {E['gear']} Mode: {mode_label}\n"
             f"  {E['settings']} Length: {session.username_length} {DIVIDER} Chars: <code>{session.char_set_label}</code>\n"
             f"\n"
             f"<code>{bar}</code> 0/{count}\n"
@@ -926,13 +1144,12 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
 
         results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
-        gen_iter = gen.random_stream()
         start_time = time.time()
 
         for i in range(count):
             if session.should_stop:
                 break
-            username = next(gen_iter)
+            username = next(gen_stream)
             status, _ = await asyncio.to_thread(client.check, username, session.delay)
             session.record(status, username)
             results[status].append(username)
@@ -1081,6 +1298,8 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"  🔤 <b>Chars:</b> <code>{session.char_set_label}</code>\n"
             f"  {E['clock']} <b>Delay:</b> {session.delay}s\n"
             f"  🧵 <b>Workers:</b> {session.max_workers}\n"
+            f"  {E['gear']} <b>Gen Mode:</b> {session.generation_mode}\n"
+            f"  {E['crystal']} <b>Pattern:</b> {session.pattern or 'none'}\n"
         )
         kb = InlineKeyboardMarkup([
             [
@@ -1090,6 +1309,10 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [
                 InlineKeyboardButton(f"{E['clock']} Delay ({session.delay}s)", callback_data="set_delay"),
                 InlineKeyboardButton(f"🧵 Workers ({session.max_workers})", callback_data="set_workers"),
+            ],
+            [
+                InlineKeyboardButton(f"{E['gear']} Gen Mode ({session.generation_mode})", callback_data="set_gen_mode"),
+                InlineKeyboardButton(f"{E['crystal']} Pattern", callback_data="pattern_menu"),
             ],
             [
                 InlineKeyboardButton(f"{E['refresh']} Reset All", callback_data="confirm_reset_settings"),
@@ -1236,6 +1459,45 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML,
         )
 
+    elif data == "set_gen_mode":
+        current = session.generation_mode
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                f"{'👉 ' if current == 'random' else ''}🎲 Random",
+                callback_data="gen_random"
+            )],
+            [InlineKeyboardButton(
+                f"{'👉 ' if current == 'word_combo' else ''}🧠 Word Combos",
+                callback_data="gen_word_combo"
+            )],
+            [InlineKeyboardButton(
+                f"{'👉 ' if current == 'mixed' else ''}🌈 Mixed (Best)",
+                callback_data="gen_mixed"
+            )],
+            [InlineKeyboardButton(f"{E['back']} Back", callback_data="settings")],
+        ])
+        await query.edit_message_text(
+            f"{E['gear']} <b>Choose Generation Mode</b>\n"
+            f"{DIVIDER}\n"
+            f"Current: <b>{current}</b>\n\n"
+            f"  🎲 <b>Random</b> — Pure random characters\n"
+            f"  🧠 <b>Word Combos</b> — Adjective+noun+number\n"
+            f"  🌈 <b>Mixed</b> — Best of both worlds",
+            parse_mode=ParseMode.HTML,
+            reply_markup=kb,
+        )
+
+    elif data.startswith("gen_"):
+        mode = data[4:]
+        session.generation_mode = mode
+        mode_labels = {"random": "🎲 Random", "word_combo": "🧠 Word Combos", "mixed": "🌈 Mixed"}
+        label = mode_labels.get(mode, mode)
+        await query.edit_message_text(
+            f"{E['yes']} Generation mode set to <b>{label}</b>\n\n"
+            f"<i>Use /generate to try it out!</i>",
+            parse_mode=ParseMode.HTML,
+        )
+
     # ── Confirmations ──
     elif data == "confirm_reset_settings":
         kb = InlineKeyboardMarkup([
@@ -1261,6 +1523,8 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         session.char_set = "abcdefghijklmnopqrstuvwxyz0123456789_"
         session.delay = 1.0
         session.max_workers = 5
+        session.generation_mode = "random"
+        session.pattern = ""
         await query.edit_message_text(
             f"{E['yes']} <b>Settings reset to defaults!</b>\n\n"
             f"<i>Use /settings to view current config.</i>",
@@ -1359,6 +1623,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"  {E['check']} <b>/check</b> <code>username</code> — Check one\n"
             f"  {E['pack']} <b>/batch</b> <code>a,b,c</code> — Check multiple\n"
             f"  {E['magic']} <b>/generate</b> <code>[N]</code> — Random names\n"
+            f"  {E['crystal']} <b>/pattern</b> <code>tmpl</code> — Pattern templates\n"
             f"  {E['settings']} <b>/settings</b> — Configure\n"
             f"  {E['stats']} <b>/stats</b> — View stats\n"
             f"  {E['history']} <b>/history</b> — Recent checks\n"
@@ -1370,11 +1635,223 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"\n"
             f"{E['pin']} <b>Username Rules:</b>\n"
             f"  5–32 chars • a-z, 0-9, _ • starts with letter\n"
-            f"  No double __ • Can't end with _"
+            f"  No double __ • Can't end with _\n"
+            f"\n"
+            f"{E['crystal']} <b>Pattern Syntax:</b>\n"
+            f"  <code>?</code>=letter <code>#</code>=digit <code>!</code>=alnum <code>_</code>=underscore"
         )
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"{E['back']} Back", callback_data="back_start")],
         ])
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    # ── Pattern Menu ──
+    elif data == "pattern_menu":
+        text = (
+            f"{E['crystal']} <b>Pattern Templates</b>\n"
+            f"{THICK_DIVIDER}\n"
+            f"\n"
+            f"  Generate usernames from a pattern!\n"
+            f"\n"
+            f"  <b>Syntax:</b>\n"
+            f"    <code>?</code> = random letter (a-z)\n"
+            f"    <code>#</code> = random digit (0-9)\n"
+            f"    <code>!</code> = random letter or digit\n"
+            f"    <code>_</code> = literal underscore\n"
+            f"    any other = literal character\n"
+            f"\n"
+            f"  <b>Quick Templates:</b>\n"
+        )
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("user_????", callback_data="pattern_tpl_user_????")],
+            [InlineKeyboardButton("name_##_ab", callback_data="pattern_tpl_name_##_ab")],
+            [InlineKeyboardButton("my_!_!_!_tag", callback_data="pattern_tpl_my_!_!_!_tag")],
+            [InlineKeyboardButton("pro_####", callback_data="pattern_tpl_pro_####")],
+            [InlineKeyboardButton(f"{E['back']} Back", callback_data="back_start")],
+        ])
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    # ── Pattern quick template ──
+    elif data.startswith("pattern_tpl_"):
+        pattern = data[len("pattern_tpl_"):]
+        session.pattern = pattern
+        # Run pattern generation inline
+        count = 20
+        session.running = True
+        session.should_stop = False
+
+        gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
+        gen_stream = gen.pattern_stream(pattern)
+
+        bar = progress_bar(0, count)
+        await query.edit_message_text(
+            f"{E['crystal']} <b>Pattern Generation</b>\n"
+            f"{THICK_DIVIDER}\n"
+            f"\n"
+            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+            f"\n"
+            f"<code>{bar}</code> 0/{count}\n"
+            f"\n"
+            f"<i>{E['crystal']} Generating from pattern...</i>",
+            parse_mode=ParseMode.HTML,
+        )
+
+        results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
+        start_time = time.time()
+
+        for i in range(count):
+            if session.should_stop:
+                break
+            username = next(gen_stream)
+            status, _ = await asyncio.to_thread(client.check, username, session.delay)
+            session.record(status, username)
+            results[status].append(username)
+
+            if (i + 1) % 3 == 0 or i == count - 1:
+                try:
+                    bar = progress_bar(i + 1, count)
+                    elapsed = time.time() - start_time
+                    speed = (i + 1) / elapsed if elapsed > 0 else 0
+                    await query.edit_message_text(
+                        f"{E['crystal']} <b>Pattern Generation</b>\n"
+                        f"{THICK_DIVIDER}\n"
+                        f"\n"
+                        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+                        f"\n"
+                        f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
+                        f"\n"
+                        f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+                        f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+                        f"  {E['zap']} Speed: {speed:.1f}/sec\n"
+                        f"\n"
+                        f"<i>{E['clock']} Checking...</i>",
+                        parse_mode=ParseMode.HTML,
+                    )
+                except Exception:
+                    pass
+
+        session.running = False
+        elapsed = time.time() - start_time
+
+        hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
+        bar = progress_bar(count, count)
+        text = (
+            f"{E['trophy']} <b>Pattern Complete</b>\n"
+            f"{THICK_DIVIDER}\n"
+            f"\n"
+            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+            f"\n"
+            f"<code>{bar}</code> {count}/{count} (100%)\n"
+            f"\n"
+            f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+            f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+            f"  {E['time']} Time: {format_uptime(elapsed)}\n"
+            f"\n"
+            f"  {E['target']} <b>Available Usernames:</b>\n"
+            f"{hit_list}"
+        )
+        buttons = []
+        if results[AVAILABLE]:
+            buttons.append([InlineKeyboardButton(
+                f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
+                callback_data="export_hits"
+            )])
+        buttons.extend([
+            [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
+            [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
+        ])
+        kb = InlineKeyboardMarkup(buttons)
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+
+    # ── Pattern more ──
+    elif data.startswith("pattern_more_"):
+        pattern = data[len("pattern_more_"):]
+        session.pattern = pattern
+        count = 20
+        session.running = True
+        session.should_stop = False
+
+        gen = UsernameGenerator(length=session.username_length, chars=session.char_set)
+        gen_stream = gen.pattern_stream(pattern)
+
+        bar = progress_bar(0, count)
+        await query.edit_message_text(
+            f"{E['crystal']} <b>Pattern Generation</b>\n"
+            f"{THICK_DIVIDER}\n"
+            f"\n"
+            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+            f"\n"
+            f"<code>{bar}</code> 0/{count}\n"
+            f"\n"
+            f"<i>{E['crystal']} Generating from pattern...</i>",
+            parse_mode=ParseMode.HTML,
+        )
+
+        results = {AVAILABLE: [], TAKEN: [], INVALID: [], RATE_LIMITED: [], ERROR: []}
+        start_time = time.time()
+
+        for i in range(count):
+            if session.should_stop:
+                break
+            username = next(gen_stream)
+            status, _ = await asyncio.to_thread(client.check, username, session.delay)
+            session.record(status, username)
+            results[status].append(username)
+
+            if (i + 1) % 3 == 0 or i == count - 1:
+                try:
+                    bar = progress_bar(i + 1, count)
+                    elapsed = time.time() - start_time
+                    speed = (i + 1) / elapsed if elapsed > 0 else 0
+                    await query.edit_message_text(
+                        f"{E['crystal']} <b>Pattern Generation</b>\n"
+                        f"{THICK_DIVIDER}\n"
+                        f"\n"
+                        f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+                        f"\n"
+                        f"<code>{bar}</code> {i + 1}/{count} ({pct(i + 1, count)})\n"
+                        f"\n"
+                        f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+                        f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+                        f"  {E['zap']} Speed: {speed:.1f}/sec\n"
+                        f"\n"
+                        f"<i>{E['clock']} Checking...</i>",
+                        parse_mode=ParseMode.HTML,
+                    )
+                except Exception:
+                    pass
+
+        session.running = False
+        elapsed = time.time() - start_time
+
+        hit_list = "\n".join(f"    {E['hit']} <code>@{u}</code>" for u in results[AVAILABLE]) or f"    {E['no']} <i>None found</i>"
+        bar = progress_bar(count, count)
+        text = (
+            f"{E['trophy']} <b>Pattern Complete</b>\n"
+            f"{THICK_DIVIDER}\n"
+            f"\n"
+            f"  {E['pin']} Pattern: <code>{pattern}</code>\n"
+            f"\n"
+            f"<code>{bar}</code> {count}/{count} (100%)\n"
+            f"\n"
+            f"  {E['hit']} Available: <b>{len(results[AVAILABLE])}</b>\n"
+            f"  {E['taken']} Taken: {len(results[TAKEN])}\n"
+            f"  {E['time']} Time: {format_uptime(elapsed)}\n"
+            f"\n"
+            f"  {E['target']} <b>Available Usernames:</b>\n"
+            f"{hit_list}"
+        )
+        buttons = []
+        if results[AVAILABLE]:
+            buttons.append([InlineKeyboardButton(
+                f"{E['export']} Export Hits ({len(results[AVAILABLE])})",
+                callback_data="export_hits"
+            )])
+        buttons.extend([
+            [InlineKeyboardButton(f"{E['crystal']} Generate More", callback_data=f"pattern_more_{pattern}")],
+            [InlineKeyboardButton(f"{E['check']} Check Another", switch_inline_query_current_chat="")],
+        ])
+        kb = InlineKeyboardMarkup(buttons)
         await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
 
 
@@ -1482,6 +1959,7 @@ def run_bot(token: str):
     app.add_handler(CommandHandler("check", cmd_check))
     app.add_handler(CommandHandler("batch", cmd_batch))
     app.add_handler(CommandHandler("generate", cmd_generate))
+    app.add_handler(CommandHandler("pattern", cmd_pattern))
     app.add_handler(CommandHandler("settings", cmd_settings))
     app.add_handler(CommandHandler("stats", cmd_stats))
     app.add_handler(CommandHandler("history", cmd_history))

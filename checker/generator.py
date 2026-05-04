@@ -1,11 +1,47 @@
 """
-Username Generator — random generation and wordlist loading.
+Username Generator — random generation, pattern templates, word combos, and wordlist loading.
 Generates Telegram-compliant usernames (5-32 chars, a-z, 0-9, underscores).
 """
 
 import random
+import re
 import requests
-from typing import Iterator, List
+from typing import Iterator, List, Optional, Set
+
+
+# Common English words for word-combo generation
+_ADJECTIVES = [
+    "fast", "cool", "dark", "fire", "wild", "blue", "red", "gold", "neo", "pro",
+    "mega", "ultra", "hyper", "cyber", "pixel", "crypto", "quantum", "storm",
+    "shadow", "frost", "blaze", "viper", "wolf", "eagle", "titan", "alpha",
+    "omega", "prime", "turbo", "swift", "bright", "sharp", "steel", "iron",
+    "cosmic", "lunar", "solar", "nova", "star", "glow", "volt", "spark",
+    "fierce", "silent", "rapid", "grand", "royal", "noble", "epic", "bold",
+]
+
+_NOUNS = [
+    "coder", "hacker", "maker", "player", "hunter", "rider", "driver", "pilot",
+    "ghost", "ninja", "knight", "wizard", "dragon", "phoenix", "tiger", "lion",
+    "hawk", "bear", "fox", "wolf", "snake", "panther", "falcon", "shark",
+    "king", "queen", "lord", "boss", "chief", "master", "legend", "hero",
+    "tech", "dev", "bit", "byte", "data", "code", "net", "web", "app", "hub",
+    "zone", "realm", "space", "world", "verse", "core", "node", "link", "sync",
+    "cloud", "stack", "flow", "wave", "pulse", "signal", "matrix", "vector",
+]
+
+# Pattern template placeholders:
+#   ? = random letter (a-z)
+#   # = random digit (0-9)
+#   _ = literal underscore
+#   @ = random char from charset (a-z, 0-9, _)
+#   ! = random letter or digit (a-z, 0-9)
+_PATTERN_MAP = {
+    "?": lambda: random.choice("abcdefghijklmnopqrstuvwxyz"),
+    "#": lambda: random.choice("0123456789"),
+    "_": lambda: "_",
+    "@": lambda: random.choice("abcdefghijklmnopqrstuvwxyz0123456789_"),
+    "!": lambda: random.choice("abcdefghijklmnopqrstuvwxyz0123456789"),
+}
 
 
 class UsernameGenerator:
@@ -23,6 +59,7 @@ class UsernameGenerator:
         self.length = max(5, min(32, length))  # Telegram: 5-32 chars
         self.chars = chars
         self.filters = []
+        self._seen: Set[str] = set()  # Dedup tracking
 
         # Always enforce Telegram rules
         self.filters.append(lambda u: u[0].isalpha())  # Must start with letter
@@ -41,20 +78,121 @@ class UsernameGenerator:
         """Check if username passes all filters."""
         return all(f(username) for f in self.filters)
 
+    def _is_unique(self, username: str) -> bool:
+        """Check if username hasn't been generated before (smart dedup)."""
+        if username in self._seen:
+            return False
+        self._seen.add(username)
+        return True
+
     def random_stream(self) -> Iterator[str]:
-        """Yield random usernames indefinitely."""
-        # Ensure we always have at least one alpha char for the start
+        """Yield random usernames indefinitely (with dedup)."""
         alpha_chars = [c for c in self.chars if c.isalpha()]
         if not alpha_chars:
             alpha_chars = list("abcdefghijklmnopqrstuvwxyz")
 
         while True:
-            # First char must be a letter (Telegram rule)
             first = random.choice(alpha_chars)
             rest = "".join(random.choice(self.chars) for _ in range(self.length - 1))
             username = first + rest
-            if self._is_valid(username):
+            if self._is_valid(username) and self._is_unique(username):
                 yield username
+
+    def word_combo_stream(self) -> Iterator[str]:
+        """Generate usernames by combining adjectives + nouns + optional numbers.
+
+        Examples: fastcoder42, coolhacker, wildwolf7, proninja
+        """
+        while True:
+            adj = random.choice(_ADJECTIVES)
+            noun = random.choice(_NOUNS)
+            base = adj + noun
+
+            # Add random number suffix sometimes
+            if random.random() < 0.6:
+                num = random.randint(1, 999)
+                username = f"{base}{num}"
+            else:
+                username = base
+
+            # Ensure length is valid (5-32)
+            if len(username) < 5:
+                username = username + str(random.randint(100, 999))
+            if len(username) > 32:
+                username = username[:32]
+
+            if self._is_valid(username) and self._is_unique(username):
+                yield username
+
+    def pattern_stream(self, pattern: str) -> Iterator[str]:
+        """Generate usernames from a pattern template.
+
+        Pattern syntax:
+            ? = random letter (a-z)
+            # = random digit (0-9)
+            _ = literal underscore
+            @ = random char (a-z, 0-9, _)
+            ! = random letter or digit (a-z, 0-9)
+            any other char = literal
+
+        Examples:
+            "user_????"  → user_abcd, user_wxyz, ...
+            "test_##"    → test_42, test_07, ...
+            "??_pro_##"  → ab_pro_42, xy_pro_07, ...
+            "name_!_!_!" → name_a3b, name_x7y, ...
+        """
+        # Build parts list
+        parts = []
+        for char in pattern:
+            if char in _PATTERN_MAP:
+                parts.append(_PATTERN_MAP[char])
+            else:
+                parts.append(lambda c=char: c)
+
+        while True:
+            username = "".join(p() for p in parts)
+
+            # Ensure starts with letter (Telegram rule)
+            if username and not username[0].isalpha():
+                # Replace first char with a letter
+                alpha_chars = [c for c in self.chars if c.isalpha()]
+                if alpha_chars:
+                    username = random.choice(alpha_chars) + username[1:]
+
+            # Length checks
+            if len(username) < 5:
+                continue
+            if len(username) > 32:
+                username = username[:32]
+
+            if self._is_valid(username) and self._is_unique(username):
+                yield username
+
+    def mixed_stream(self, count: int = 20) -> Iterator[str]:
+        """Generate usernames using a mix of strategies.
+
+        Yields from multiple streams in round-robin for variety.
+        """
+        streams = [
+            self.random_stream(),
+            self.word_combo_stream(),
+            self.word_combo_stream(),  # Double weight for word combos
+        ]
+
+        idx = 0
+        while True:
+            username = next(streams[idx % len(streams)])
+            idx += 1
+            yield username
+
+    @property
+    def seen_count(self) -> int:
+        """Number of unique usernames generated so far."""
+        return len(self._seen)
+
+    def clear_seen(self):
+        """Reset the dedup set."""
+        self._seen.clear()
 
     @staticmethod
     def load_from_file(path: str) -> List[str]:
@@ -76,3 +214,22 @@ class UsernameGenerator:
         except Exception as e:
             print(f"[!] Failed to load wordlist from URL: {e}")
             return []
+
+    @staticmethod
+    def validate_pattern(pattern: str) -> tuple:
+        """Validate a pattern template. Returns (is_valid, error_message)."""
+        if not pattern:
+            return False, "Pattern cannot be empty"
+        if len(pattern) > 32:
+            return False, "Pattern too long (max 32 chars)"
+        if len(pattern) < 5:
+            return False, "Pattern too short (min 5 chars)"
+
+        # Check that pattern produces a valid start char
+        first = pattern[0]
+        if first in ("#", "@"):
+            return False, "Pattern must start with a letter or literal (not # or @)"
+        if first == "!":
+            return False, "Pattern must start with a letter or literal (not !)"
+
+        return True, ""

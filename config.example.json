@@ -6,13 +6,22 @@
   "avoid_start_underscore": true,
   "avoid_end_underscore": true,
   "avoid_double_underscore": true,
+  "generation_mode": "random",
+  "use_pattern": false,
+  "pattern": "",
   "mode": "hits",
   "stop_after_hits": 10,
   "max_workers": 10,
   "delay": 1.0,
+  "max_retries": 3,
+  "retry_backoff_base": 2.0,
+  "auto_adjust_delay": true,
   "use_proxies": false,
   "proxy_file": "",
   "proxy_url": "",
   "save_hits": true,
-  "output_file": "available_usernames.txt"
+  "output_file": "available_usernames.txt",
+  "notify_on_hit": true,
+  "notify_on_finish": true,
+  "notify_progress_interval": 50
 }

@@ -599,7 +599,7 @@ Educational and personal use only. Automated checks may be rate-limited by Teleg
 
 <div align="center">
 
-**Made with ❤️ by [@Shineii86](https://github.com/Shineii86)**
+**Made with ❤️ by [Shinei Nouzen](https://github.com/Shineii86)**
 
 ⭐ Star this repo if it helped you find a great username!
 

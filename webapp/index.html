@@ -335,7 +335,7 @@
     <div class="logo">🔍</div>
     <h1>Username Checker</h1>
     <p class="subtitle">Find your perfect Telegram username</p>
-    <span class="version-badge" id="versionBadge">v3.1</span>
+    <span class="version-badge" id="versionBadge">v3.3</span>
   </div>
 
   <div class="stats-bar" id="homeStats">
@@ -720,15 +720,34 @@ function validateUsername(u) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// CHECK AVAILABILITY (via t.me scraping — matches bot logic)
+// CHECK AVAILABILITY (via t.me scraping + Fragment verification)
 // ══════════════════════════════════════════════════════════════
-// Detection mirrors checker/telegram_client.py _parse_page():
-//   TAKEN if any of: profile photo, display name, subscriber count, real bio
-//   AVAILABLE if only generic "you can contact @username right away" page
+// Two-stage detection matching checker/telegram_client.py:
+//   Stage 1 — t.me page check:
+//     TAKEN if any of: profile photo, display name, subscriber count, real bio
+//     AVAILABLE if only generic "you can contact @username right away" page
+//   Stage 2 — Fragment collectible verification (for t.me AVAILABLE results):
+//     Collectible usernames (auctioned on Fragment) show the same generic t.me page.
+//     We cross-check fragment.com — tm-status-avail = collectible → TAKEN.
 //   INVALID if username doesn't match Telegram rules (5-32 chars, a-z0-9_, starts with letter, no __, no trailing _)
 //   RATE_LIMITED if 429 response
 //   ERROR on network/timeout failure
 // Retries up to 3 times with exponential backoff on failure/rate-limit.
+
+async function checkFragmentCollectible(username) {
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://fragment.com/username/' + username)}`;
+    const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+    if (!resp.ok) return false;
+    const html = await resp.text();
+    // Fragment uses tm-status-avail for collectible usernames (on auction / auctionable)
+    const match = html.match(/tm-status-(avail|taken|unavail)/i);
+    if (match && match[1].toLowerCase() === 'avail') return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 async function checkAvailability(username, signal) {
   const MAX_RETRIES = 3;
@@ -771,7 +790,13 @@ async function checkAvailability(username, signal) {
 
       // Any real profile data → TAKEN
       if (hasPhoto || hasName || hasSubs || hasBio) return 'taken';
-      // No profile data → AVAILABLE (generic contact page)
+
+      // Looks available on t.me — verify it's not a collectible on Fragment
+      // Collectible/auctioned usernames show the same generic t.me page
+      const isCollectible = await checkFragmentCollectible(username);
+      if (isCollectible) return 'taken';
+
+      // Confirmed: not registered, not a collectible → truly AVAILABLE
       return 'available';
 
     } catch (e) {

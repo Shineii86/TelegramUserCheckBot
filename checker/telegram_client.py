@@ -1,18 +1,28 @@
 """
-Telegram Username API Client — check username availability via t.me page scraping.
+Telegram Username API Client — check username availability via t.me page scraping
+with Fragment collectible username verification.
+
 Handles rate limiting, retries with exponential backoff, and User-Agent rotation.
 
-Detection method:
-    TAKEN indicators (any of these means the username is registered):
-      - Profile photo (tgme_page_photo_image)       → real user/channel/group
-      - Display name (tgme_page_title with content)  → real user/channel/group
-      - Subscriber/member count (tgme_page_extra)    → channel/group
-      - Actual bio text (not just generic contact)    → user with bio
+Detection method (two-stage):
+    Stage 1 — t.me page scraping:
+      TAKEN indicators (any of these means the username is registered):
+        - Profile photo (tgme_page_photo_image)       → real user/channel/group
+        - Display name (tgme_page_title with content)  → real user/channel/group
+        - Subscriber/member count (tgme_page_extra)    → channel/group
+        - Actual bio text (not just generic contact)    → user with bio
 
-    AVAILABLE indicators:
-      - Only generic "If you have Telegram, you can contact @username right away."
-      - No profile photo, no display name, no subscriber count, no real bio
-      - Page has tgme_page_icon (generic icon) instead of tgme_page_photo
+      AVAILABLE indicators:
+        - Only generic "If you have Telegram, you can contact @username right away."
+        - No profile photo, no display name, no subscriber count, no real bio
+        - Page has tgme_page_icon (generic icon) instead of tgme_page_photo
+
+    Stage 2 — Fragment collectible verification (only for t.me AVAILABLE results):
+      Collectible usernames (auctioned on Fragment) show the same generic t.me page
+      as truly available usernames. We cross-check with fragment.com to detect:
+        - tm-status-avail → collectible username (on auction / auctionable) → TAKEN
+        - tm-status-taken → registered collectible → TAKEN (already caught by stage 1)
+        - tm-status-unavail → not a collectible → confirmed AVAILABLE
 """
 
 import random
@@ -37,12 +47,18 @@ ERROR = "error"
 # Must start with a letter, no double underscores, no trailing underscore
 VALID_USERNAME_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_")
 
-# Compiled regex patterns for detection
+# Compiled regex patterns for t.me page detection
 _TITLE_RE = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _PHOTO_RE = re.compile(r'tgme_page_photo_image', re.IGNORECASE)
 _NAME_TITLE_RE = re.compile(r'tgme_page_title[^>]*>(.*?)</div>', re.IGNORECASE | re.DOTALL)
 _SUBS_RE = re.compile(r'tgme_page_extra[^>]*>(.*?)</div>', re.IGNORECASE | re.DOTALL)
 _DESC_RE = re.compile(r'tgme_page_description[^>]*dir="auto">(.*?)</div>', re.IGNORECASE | re.DOTALL)
+
+# Fragment collectible username detection
+# Fragment uses tm-status-avail for collectible usernames on/auctionable
+# and tm-status-taken for registered, tm-status-unavail for not found
+_FRAGMENT_STATUS_RE = re.compile(r'tm-status-(avail|taken|unavail)', re.IGNORECASE)
+_FRAGMENT_URL = "https://fragment.com/username/{username}"
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -76,7 +92,7 @@ def _calculate_backoff(attempt: int, base: float = BASE_BACKOFF, maximum: float 
 
 
 class TelegramUsernameClient:
-    """Checks Telegram username availability via t.me page scraping."""
+    """Checks Telegram username availability via t.me page scraping with Fragment verification."""
 
     TME_URL = "https://t.me/{username}"
 
@@ -91,6 +107,37 @@ class TelegramUsernameClient:
 
     def _get_ua(self) -> str:
         return random.choice(self.user_agents)
+
+    def _check_fragment_collectible(self, username: str) -> bool:
+        """Check if a username is a collectible on Fragment (auction/reserved).
+
+        Returns True if the username is a collectible (should be treated as TAKEN).
+        Returns False if not a collectible or on error (safe to treat as AVAILABLE).
+        """
+        url = _FRAGMENT_URL.format(username=username)
+        try:
+            resp = self._session.get(
+                url,
+                headers={"User-Agent": self._get_ua()},
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                return False
+
+            match = _FRAGMENT_STATUS_RE.search(resp.text)
+            if match:
+                status = match.group(1).lower()
+                # "avail" on Fragment = collectible username (on auction / auctionable)
+                # These are NOT freely registerable — they require TON bidding
+                if status == "avail":
+                    logger.info(f"@{username} is a collectible on Fragment (auction)")
+                    return True
+                # "taken" = registered collectible (already caught by t.me check)
+                # "unavail" = not a collectible, truly available
+            return False
+        except Exception as e:
+            logger.debug(f"Fragment check failed for @{username}: {e}")
+            return False
 
     def _parse_page(self, text: str, username: str) -> str:
         """Parse t.me page HTML to determine username status."""
@@ -116,12 +163,25 @@ class TelegramUsernameClient:
         if has_photo or has_name or has_subs or has_bio:
             return TAKEN
 
-        # No profile data → AVAILABLE (Telegram shows generic contact page)
+        # No profile data on t.me → looks available, but verify with Fragment
+        # Collectible usernames (auctioned) show the same generic page
+        if self._check_fragment_collectible(username):
+            return TAKEN
+
+        # Confirmed: not registered, not a collectible → truly AVAILABLE
         return AVAILABLE
 
     def check(self, username: str, delay: float = 1.0) -> Tuple[str, str]:
         """
         Check a single username availability with retry logic.
+
+        Two-stage detection:
+            1. Scrapes t.me page for profile indicators (photo, name, subscribers, bio)
+            2. If t.me looks available, cross-checks Fragment for collectible/auction status
+
+        This prevents false positives for collectible usernames (e.g. @squatting)
+        that show the same generic t.me page as truly available usernames but are
+        actually reserved in the Fragment auction system.
 
         Returns:
             (status, username) where status is AVAILABLE, TAKEN, INVALID, RATE_LIMITED, or ERROR

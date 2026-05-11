@@ -31,7 +31,7 @@ from checker.generator import UsernameGenerator
 
 
 # ── Constants ──
-VERSION = "3.2"
+VERSION = "3.3"
 DIVIDER = "─" * 26
 THICK_DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━━━━━"
 THIN_DIVIDER = "· · · · · · · · · · · · · ·"

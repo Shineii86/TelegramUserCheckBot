@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.3.0] — 2026-05-11
+
+### 🔐 Fragment Collectible Username Verification
+
+#### 🐛 Fixed
+- **False positives for collectible/auction usernames** — Usernames like `@squatting` that are on Fragment auction were incorrectly reported as "available" because the `t.me` page shows the same generic contact page as truly available usernames
+- **Root cause** — The detection only checked `t.me` pages, which cannot distinguish between freely registerable usernames and collectible usernames reserved in the Fragment/TON auction system
+
+#### ✨ Added — Two-Stage Detection
+- **Stage 1: t.me page scraping** (existing) — Profile photo, display name, subscriber count, bio analysis
+- **Stage 2: Fragment verification** (new) — When t.me reports "available", cross-checks `fragment.com/username/{name}` for collectible status
+  - `tm-status-avail` → Collectible username on auction → **Taken** (not freely available)
+  - `tm-status-taken` → Registered collectible → **Taken** (already caught by stage 1)
+  - `tm-status-unavail` → Not a collectible → **Available** ✅ (confirmed free to register)
+- **`_check_fragment_collectible()` method** in `TelegramUsernameClient` — Verifies username against Fragment with timeout and error handling
+- **Web App Fragment check** — `checkFragmentCollectible()` JS function mirrors Python logic for Web App users
+
+#### 🔧 Changed
+- **`checker/telegram_client.py`** — `_parse_page()` now calls Fragment verification before returning AVAILABLE
+  - Added `_FRAGMENT_STATUS_RE` compiled regex for Fragment status parsing
+  - Added `_FRAGMENT_URL` constant for Fragment check URL
+  - Updated class docstring and `check()` method docstring with two-stage detection docs
+- **`webapp/index.html`** — `checkAvailability()` now performs Fragment cross-check after t.me looks available
+  - Added `checkFragmentCollectible()` async function
+  - Uses same `tm-status-avail` regex pattern as Python code
+- **`bot/handlers.py`** — Version bump to 3.3
+- **`README.md`** — Updated architecture diagram, detection docs, feature table, and FAQ
+
+#### 📝 Documentation
+- **README.md** — Updated "How It Works" section with two-stage detection flow diagram
+- **README.md** — Added Fragment Verification to Features table
+- **README.md** — Added "What's new in v3.3?" FAQ entry
+- **CHANGELOG.md** — Added v3.3.0 release notes
+
+---
+
 ## [3.2.0] — 2026-05-04
 
 ### 🌐 Full Web App (Mini App) Overhaul

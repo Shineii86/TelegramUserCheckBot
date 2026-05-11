@@ -1,12 +1,12 @@
 <div align="center">
 
-![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.2&descSize=20)
+![Telegram User Checker Banner](https://capsule-render.vercel.app/api?type=waving&color=0088cc,00aced&height=200&section=header&text=Telegram%20User%20Check%20Bot&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Telegram%20Username%20Availability%20Checker%20v3.3&descSize=20)
 
 [![Open in Google Colab](https://img.shields.io/badge/Open%20in-Colab-f9ab00?logo=google-colab&logoColor=white)](https://colab.research.google.com/github/Shineii86/TelegramUserCheckBot/blob/main/notebooks/TelegramUserCheckBot.ipynb)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](https://github.com/Shineii86/TelegramUserCheckBot/pulls)
-[![Version](https://img.shields.io/badge/Version-3.2-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
+[![Version](https://img.shields.io/badge/Version-3.3-blue.svg)](https://github.com/Shineii86/TelegramUserCheckBot/releases)
 
 [![GitHub Stars](https://img.shields.io/github/stars/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Shineii86/TelegramUserCheckBot?style=social)](https://github.com/Shineii86/TelegramUserCheckBot/fork)
@@ -44,19 +44,21 @@
 ## 🧠 How It Works
 
 ```
-┌─────────────────┐     ┌──────────────┐     ┌───────────────┐
-│  Generate / Load │────▶│  Check t.me  │────▶│  Parse Result │
-│   Usernames      │     │   Pages      │     │  (HTML)       │
-└─────────────────┘     └──────────────┘     └───────┬───────┘
-                                                      │
-                              ┌────────────────────────┼────────────────┐
+┌─────────────────┐     ┌──────────────┐     ┌───────────────┐     ┌──────────────────┐
+│  Generate / Load │────▶│  Check t.me  │────▶│  Parse Result │────▶│  Verify Fragment │
+│   Usernames      │     │   Pages      │     │  (HTML)       │     │  (Collectibles)  │
+└─────────────────┘     └──────────────┘     └───────┬───────┘     └────────┬─────────┘
+                                                      │                      │
+                              ┌────────────────────────┼──────────────────────┘
                               ▼                        ▼                ▼
                         ┌──────────┐            ┌──────────┐      ┌──────────┐
                         │ ✅ Available│          │ ❌ Taken  │      │ ⚠️ Error  │
                         └──────────┘            └──────────┘      └──────────┘
 ```
 
-**Detection method:** Scrapes `t.me/{username}` pages and analyzes profile data:
+**Two-stage detection:**
+
+**Stage 1 — t.me page scraping:** Analyzes profile data on `t.me/{username}` pages:
 
 | Indicator | Found? | Result |
 |-----------|--------|--------|
@@ -64,7 +66,17 @@
 | 👤 Display name | Yes | **Taken** |
 | 📊 Subscriber count | Yes | **Taken** (channel/group) |
 | 📝 Bio/description | Yes | **Taken** |
-| 🚫 No profile data | Yes | **Available** ✅ |
+| 🚫 No profile data | Yes | → **Stage 2** |
+
+**Stage 2 — Fragment collectible verification:** Username looks available on t.me? Cross-check with [Fragment](https://fragment.com):
+
+| Fragment Status | Meaning | Result |
+|----------------|---------|--------|
+| `tm-status-avail` | Collectible username (on auction) | **Taken** ❌ |
+| `tm-status-taken` | Registered collectible | **Taken** ❌ |
+| `tm-status-unavail` | Not a collectible | **Available** ✅ |
+
+> **Why two stages?** Collectible usernames auctioned on Fragment (like `@squatting`) show the same generic "you can contact @username" page on `t.me` as truly available usernames. Without Fragment verification, these would be false positives.
 
 > **No API keys needed** for checking — only the Bot Token is needed for the interactive bot & notifications.
 
@@ -87,6 +99,7 @@
 | 🚀 **Performance** | Multi-threading | Configurable worker count (1–50) |
 | | Proxy Rotation | HTTP/HTTPS/SOCKS from file or URL |
 | | Smart Detection | Profile data analysis for accurate results |
+| | Fragment Verification | Cross-checks collectible/auction usernames to prevent false positives |
 | | UA Rotation | Rotates across 6 browser fingerprints |
 | | Retry Logic | Exponential backoff on rate limits (3 retries) |
 | | Auto Delay | Automatically increases delay when rate limited |
@@ -518,6 +531,15 @@ Patterns let you generate usernames from a template. Use special characters as p
 4. Click ▶️ — the bot starts!
 5. Open Telegram → find your bot → `/start`
 6. Keep the cell running while you use the bot
+</details>
+
+<details>
+<summary><b>What's new in v3.3?</b></summary>
+
+- **Fragment collectible verification** — Cross-checks with Fragment to detect auctioned/collectible usernames that appear available on t.me but are actually reserved
+- **Fixes false positives** — Usernames like `@squatting` that are on Fragment auction no longer show as "available"
+- **Two-stage detection** — t.me scraping + Fragment verification for maximum accuracy
+- See [CHANGELOG.md](CHANGELOG.md) for full details
 </details>
 
 <details>

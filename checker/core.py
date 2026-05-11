@@ -146,7 +146,7 @@ class Checker:
     def _print_banner(self):
         """Print a startup banner."""
         print(f"\n{CYN}{'═' * 50}{RST}")
-        print(f"{BOLD}{CYN}  🔍 TelegramUserCheckBot v3.1{RST}")
+        print(f"{BOLD}{CYN}  🔍 TelegramUserCheckBot v3.3{RST}")
         print(f"{CYN}{'═' * 50}{RST}")
         print(f"  {WHT}Mode:{RST}     {YEL}{self.config.mode}{RST}")
         print(f"  {WHT}Workers:{RST}  {YEL}{self.config.max_workers}{RST}")
